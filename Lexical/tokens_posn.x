@@ -51,7 +51,7 @@ tokens :-
   "false"                              { \p s -> Bool p False}
   "true"                               { \p s -> Bool p True}
   $digit+                              { \p s -> Int p (read s) }
-  $digit*\.$digit+                     { \p s -> Real p (read s) }
+  $digit+\.$digit+                     { \p s -> Real p (read s) }
   \'[^\']\'                            { \p s -> Char p (s !! 1) }
   \"[^\"]*\"                           { \p s -> String p (init (tail s))}
   $alpha[$alpha$digit\_]*              { \p s -> Id p s }
