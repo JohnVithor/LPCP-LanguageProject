@@ -20,7 +20,6 @@ tokens :-
   "switch"                             { \p s -> Switch p}
   "case"                               { \p s -> Case p}
   "if"                                 { \p s -> If p}
-  "elif"                               { \p s -> Elif p}
   "else"                               { \p s -> Else p}
   "in"                                 { \p s -> In p}
   "and"                                { \p s -> And p}
@@ -71,7 +70,6 @@ data Token =
   Switch              AlexPosn	|
   Case                AlexPosn	|
   If                  AlexPosn	|
-  Elif                AlexPosn	|
   Else                AlexPosn	|
   In                  AlexPosn	|
   And                 AlexPosn	|
@@ -114,7 +112,6 @@ token_posn (Const            p) = p
 token_posn (Switch           p) = p
 token_posn (Case             p) = p
 token_posn (If               p) = p
-token_posn (Elif             p) = p
 token_posn (Else             p) = p
 token_posn (In               p) = p
 token_posn (And              p) = p
