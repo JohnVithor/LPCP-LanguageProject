@@ -43,6 +43,11 @@ tokens :-
   "*"                                  { \p s -> Mult p}
   "/"                                  { \p s -> Div p}
   "%"                                  { \p s -> Mod p}
+  "(real)"                             { \p s -> CastingReal p}
+  "(char)"                             { \p s -> CastingChar p}
+  "(bool)"                             { \p s -> CastingBool p}
+  "(string)"                           { \p s -> CastingString p}
+  "(int)"                              { \p s -> CastingInt p}
   "bool"                               { \p s -> Type p s}
   "int"                                { \p s -> Type p s}
   "real"                               { \p s -> Type p s}
@@ -60,6 +65,11 @@ tokens :-
 {
 -- The token type:
 data Token =
+  CastingBool         AlexPosn  |
+  CastingReal         AlexPosn  |
+  CastingChar         AlexPosn  |
+  CastingString       AlexPosn  |
+  CastingInt          AlexPosn  |
   Global              AlexPosn	|
   Func                AlexPosn	|
   Proc                AlexPosn	|
@@ -102,6 +112,11 @@ data Token =
   Id                  AlexPosn String
   deriving (Eq,Show)
 
+token_posn (CastingString    p) = p
+token_posn (CastingChar      p) = p
+token_posn (CastingBool      p) = p
+token_posn (CastingReal      p) = p
+token_posn (CastingInt       p) = p
 token_posn (Global           p) = p
 token_posn (Func             p) = p
 token_posn (Proc             p) = p
