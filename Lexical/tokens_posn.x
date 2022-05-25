@@ -43,6 +43,10 @@ tokens :-
   "*"                                  { \p s -> Mult p}
   "/"                                  { \p s -> Div p}
   "%"                                  { \p s -> Mod p}
+  "=="                                 { \p s -> Equal p}
+  "<="                                 { \p s -> LessOrEqual p}
+  ">="                                 { \p s -> GreaterOrEqual p}
+  "!="                                 { \p s -> NotEqual p}
   "(real)"                             { \p s -> CastingReal p}
   "(char)"                             { \p s -> CastingChar p}
   "(bool)"                             { \p s -> CastingBool p}
@@ -102,6 +106,10 @@ data Token =
   Minus               AlexPosn	|
   Mult                AlexPosn	|
   Div                 AlexPosn	|
+  GreaterOrEqual      AlexPosn	|
+  LessOrEqual         AlexPosn	|
+  NotEqual            AlexPosn	|
+  Equal               AlexPosn	|
   Mod                 AlexPosn	|
   Type                AlexPosn String  |
   Bool                AlexPosn Bool    |
@@ -148,6 +156,10 @@ token_posn (Plus             p) = p
 token_posn (Minus            p) = p
 token_posn (Mult             p) = p
 token_posn (Div              p) = p
+token_posn (Equal            p) = p
+token_posn (NotEqual         p) = p
+token_posn (GreaterOrEqual   p) = p
+token_posn (LessOrEqual      p) = p
 token_posn (Mod              p) = p
 token_posn (Type           p _) = p
 token_posn (Bool           p _) = p
