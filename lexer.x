@@ -1,7 +1,8 @@
 {
-  module Main (main, Token(..), AlexPosn(..), alexScanTokens, token_posn) where
+  module Lexer where
+  import System.IO
+  import System.IO.Unsafe
 }
-
 %wrapper "posn"
 
 $digit = [0-9]     -- digits
@@ -21,6 +22,7 @@ tokens :-
   "case"                               { \p s -> Case p}
   "if"                                 { \p s -> If p}
   "else"                               { \p s -> Else p}
+  "ref"                                { \p s -> Ref p}
   "in"                                 { \p s -> In p}
   "and"                                { \p s -> And p}
   "or"                                 { \p s -> Or p}
@@ -85,6 +87,7 @@ data Token =
   Case                AlexPosn	|
   If                  AlexPosn	|
   Else                AlexPosn	|
+  Ref                 AlexPosn	|
   In                  AlexPosn	|
   And                 AlexPosn	|
   Or                  AlexPosn	|
@@ -136,6 +139,7 @@ token_posn (Switch           p) = p
 token_posn (Case             p) = p
 token_posn (If               p) = p
 token_posn (Else             p) = p
+token_posn (Ref              p) = p
 token_posn (In               p) = p
 token_posn (And              p) = p
 token_posn (Or               p) = p
@@ -169,7 +173,9 @@ token_posn (Char           p _) = p
 token_posn (String         p _) = p
 token_posn (Id             p _) = p
 
-main = do
- s <- getContents
- print (alexScanTokens s)
+getTokens fn = unsafePerformIO (getTokensAux fn)
+
+getTokensAux fn = do {fh <- openFile fn ReadMode;
+                      s <- hGetContents fh;
+                      return (alexScanTokens s)}
 }
