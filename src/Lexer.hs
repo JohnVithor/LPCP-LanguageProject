@@ -1,9 +1,10 @@
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-missing-signatures #-}
 {-# LANGUAGE CPP #-}
-{-# LINE 1 "lexer.x" #-}
+{-# LINE 1 "./src/Lexer.x" #-}
 module Lexer where
-  import System.IO
-  import System.IO.Unsafe
+
+import System.IO
+import System.IO.Unsafe
 #if __GLASGOW_HASKELL__ >= 603
 #include "ghcconfig.h"
 #elif defined(__GLASGOW_HASKELL__)
@@ -18297,7 +18298,7 @@ alex_actions = array (0 :: Int, 110)
   , (0,alex_action_42)
   ]
 
-{-# LINE 71 "lexer.x" #-}
+{-# LINE 72 "./src/Lexer.x" #-}
 -- The token type:
 data Token =
   CastingBool         AlexPosn  |

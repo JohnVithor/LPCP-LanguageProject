@@ -1,7 +1,8 @@
 {
-  module Lexer where
-  import System.IO
-  import System.IO.Unsafe
+module Lexer where
+
+import System.IO
+import System.IO.Unsafe
 }
 %wrapper "posn"
 

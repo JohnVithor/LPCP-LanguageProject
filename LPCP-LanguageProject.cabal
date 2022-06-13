@@ -1,0 +1,54 @@
+cabal-version:      2.4
+name:               LPCP-LanguageProject
+version:            0.1.0.0
+
+-- A short (one-line) description of the package.
+-- synopsis:
+
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+-- license:
+author:             johnvithor
+maintainer:         jv.venceslau.c@gmail.com
+
+-- A copyright notice.
+-- copyright:
+-- category:
+extra-source-files:
+    CHANGELOG.md
+    README.md
+
+library
+    exposed-modules: Lexer, Parser
+
+    -- Modules included in this library but not exported.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:    base ^>=4.14.3.0, parsec, text, array
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+executable LPCP-LanguageProject
+    main-is:          Main.hs
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:
+        base ^>=4.14.3.0,
+        parsec,
+        text,
+        array,
+        LPCP-LanguageProject
+
+    hs-source-dirs:   app
+    default-language: Haskell2010
