@@ -14,6 +14,8 @@ tokens :-
   "func"                               { \p s -> Func p}
   "proc"                               { \p s -> Proc p}
   "struct"                             { \p s -> Struct p}
+  "create"                             { \p s -> Create p}
+  "destroy"                            { \p s -> Destroy p}
   "begin"                              { \p s -> BeginScope p}
   "end"                                { \p s -> EndScope p}
   "const"                              { \p s -> Const p}
@@ -78,6 +80,8 @@ data Token =
   Func                AlexPosn	|
   Proc                AlexPosn	|
   Struct              AlexPosn	|
+  Create              AlexPosn	|
+  Destroy             AlexPosn	|
   BeginScope          AlexPosn	|
   EndScope            AlexPosn	|
   Const               AlexPosn	|
@@ -129,6 +133,8 @@ token_posn (Global           p) = p
 token_posn (Func             p) = p
 token_posn (Proc             p) = p
 token_posn (Struct           p) = p
+token_posn (Create           p) = p
+token_posn (Destroy          p) = p
 token_posn (BeginScope       p) = p
 token_posn (EndScope         p) = p
 token_posn (Const            p) = p
