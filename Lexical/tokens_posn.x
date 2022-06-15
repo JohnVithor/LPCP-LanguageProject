@@ -14,12 +14,21 @@ tokens :-
   "struct"                             { \p s -> Struct p}
   "create"                             { \p s -> Create p}
   "destroy"                            { \p s -> Destroy p}
+  "ref"                                { \p s -> Ref p}
   "begin"                              { \p s -> BeginScope p}
   "end"                                { \p s -> EndScope p}
-  "const"                              { \p s -> Const p}
+  "constant"                           { \p s -> Constant p}
+  "while"                              { \p s -> While p}
+  "foreach"                            { \p s -> Foreach p}
+  "repeat"                             { \p s -> Repeat p}
+  "until"                              { \p s -> Until p}
+  "break"                              { \p s -> Break p}
+  "continue"                           { \p s -> Continue p}
+  "return"                             { \p s -> Return p}
   "if"                                 { \p s -> If p}
   "else"                               { \p s -> Else p}
   "in"                                 { \p s -> In p}
+  "is"                                 { \p s -> Is p}
   "and"                                { \p s -> And p}
   "or"                                 { \p s -> Or p}
   "not"                                { \p s -> Not p}
@@ -76,12 +85,21 @@ data Token =
   Struct              AlexPosn	|
   Create              AlexPosn	|
   Destroy             AlexPosn	|
+  Ref                 AlexPosn	|
   BeginScope          AlexPosn	|
   EndScope            AlexPosn	|
-  Const               AlexPosn	|
+  Constant            AlexPosn	|
+  Foreach             AlexPosn	|
+  While               AlexPosn	|
+  Repeat              AlexPosn	|
+  Until               AlexPosn	|
+  Break               AlexPosn	|
+  Continue            AlexPosn	|
+  Return              AlexPosn	|
   If                  AlexPosn	|
   Else                AlexPosn	|
   In                  AlexPosn	|
+  Is                  AlexPosn	|
   And                 AlexPosn	|
   Or                  AlexPosn	|
   Not                 AlexPosn	|
@@ -125,12 +143,21 @@ token_posn (Global           p) = p
 token_posn (Struct           p) = p
 token_posn (Create           p) = p
 token_posn (Destroy          p) = p
+token_posn (Ref              p) = p
 token_posn (BeginScope       p) = p
 token_posn (EndScope         p) = p
-token_posn (Const            p) = p
+token_posn (Constant         p) = p
+token_posn (Foreach          p) = p
+token_posn (While            p) = p
+token_posn (Repeat           p) = p
+token_posn (Until            p) = p
+token_posn (Break            p) = p
+token_posn (Continue         p) = p
+token_posn (Return           p) = p
 token_posn (If               p) = p
 token_posn (Else             p) = p
 token_posn (In               p) = p
+token_posn (Is               p) = p
 token_posn (And              p) = p
 token_posn (Or               p) = p
 token_posn (Not              p) = p
