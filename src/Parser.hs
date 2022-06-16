@@ -10,9 +10,9 @@ globalToken = tokenPrim show updatePos get_token where
   get_token (Global p) = Just (Global p)
   get_token _          = Nothing
 
-funcToken = tokenPrim show updatePos get_token where
-  get_token (Func p) = Just (Func p)
-  get_token _        = Nothing
+-- funcToken = tokenPrim show updatePos get_token where
+--   get_token (Func p) = Just (Func p)
+--   get_token _        = Nothing
 
 -- ProcToken = tokenPrim show updatePos get_token where
 --   get_token (Proc p) = Just (Proc p)
@@ -223,7 +223,7 @@ updatePos pos _ []      = pos
 program :: ParsecT [Token] [(Token,Token)] IO [Token]
 program = do
             a <- globalToken
-            b <- funcToken
+            -- b <- funcToken
             -- b <- struc_declarations
             -- c <- subprograms
             eof

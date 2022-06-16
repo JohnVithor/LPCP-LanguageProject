@@ -4,6 +4,7 @@ module Lexer where
 import System.IO
 import System.IO.Unsafe
 }
+
 %wrapper "posn"
 
 $digit = [0-9]     -- digits
@@ -14,15 +15,23 @@ tokens :-
   "//".*                               ; -- comment
   "global"                             { \p s -> Global p}
   "struct"                             { \p s -> Struct p}
+  "create"                             { \p s -> Create p}
+  "destroy"                            { \p s -> Destroy p}
+  "ref"                                { \p s -> Ref p}
   "begin"                              { \p s -> BeginScope p}
   "end"                                { \p s -> EndScope p}
-  "const"                              { \p s -> Const p}
-  "switch"                             { \p s -> Switch p}
-  "case"                               { \p s -> Case p}
+  "constant"                           { \p s -> Constant p}
+  "while"                              { \p s -> While p}
+  "foreach"                            { \p s -> Foreach p}
+  "repeat"                             { \p s -> Repeat p}
+  "until"                              { \p s -> Until p}
+  "break"                              { \p s -> Break p}
+  "continue"                           { \p s -> Continue p}
+  "return"                             { \p s -> Return p}
   "if"                                 { \p s -> If p}
   "else"                               { \p s -> Else p}
-  "ref"                                { \p s -> Ref p}
   "in"                                 { \p s -> In p}
+  "is"                                 { \p s -> Is p}
   "and"                                { \p s -> And p}
   "or"                                 { \p s -> Or p}
   "not"                                { \p s -> Not p}
@@ -77,15 +86,23 @@ data Token =
   CastingInt          AlexPosn  |
   Global              AlexPosn	|
   Struct              AlexPosn	|
+  Create              AlexPosn	|
+  Destroy             AlexPosn	|
+  Ref                 AlexPosn	|
   BeginScope          AlexPosn	|
   EndScope            AlexPosn	|
-  Const               AlexPosn	|
-  Switch              AlexPosn	|
-  Case                AlexPosn	|
+  Constant            AlexPosn	|
+  Foreach             AlexPosn	|
+  While               AlexPosn	|
+  Repeat              AlexPosn	|
+  Until               AlexPosn	|
+  Break               AlexPosn	|
+  Continue            AlexPosn	|
+  Return              AlexPosn	|
   If                  AlexPosn	|
   Else                AlexPosn	|
-  Ref                 AlexPosn	|
   In                  AlexPosn	|
+  Is                  AlexPosn	|
   And                 AlexPosn	|
   Or                  AlexPosn	|
   Not                 AlexPosn	|
@@ -120,53 +137,61 @@ data Token =
   Id                  AlexPosn String
   deriving (Eq,Show)
 
-tokenPosn (CastingString    p) = p
-tokenPosn (CastingChar      p) = p
-tokenPosn (CastingBool      p) = p
-tokenPosn (CastingReal      p) = p
-tokenPosn (CastingInt       p) = p
-tokenPosn (Global           p) = p
-tokenPosn (Struct           p) = p
-tokenPosn (BeginScope       p) = p
-tokenPosn (EndScope         p) = p
-tokenPosn (Const            p) = p
-tokenPosn (Switch           p) = p
-tokenPosn (Case             p) = p
-tokenPosn (If               p) = p
-tokenPosn (Else             p) = p
-tokenPosn (Ref              p) = p
-tokenPosn (In               p) = p
-tokenPosn (And              p) = p
-tokenPosn (Or               p) = p
-tokenPosn (Not              p) = p
-tokenPosn (BeginExpression  p) = p
-tokenPosn (EndExpression    p) = p
-tokenPosn (BeginDeclaration p) = p
-tokenPosn (EndDeclaration   p) = p
-tokenPosn (BeginListConst   p) = p
-tokenPosn (Dot              p) = p
-tokenPosn (Comma            p) = p
-tokenPosn (Colon            p) = p
-tokenPosn (SemiColon        p) = p
-tokenPosn (Assign           p) = p
-tokenPosn (Greater          p) = p
-tokenPosn (Less             p) = p
-tokenPosn (Plus             p) = p
-tokenPosn (Minus            p) = p
-tokenPosn (Mult             p) = p
-tokenPosn (Div              p) = p
-tokenPosn (Equal            p) = p
-tokenPosn (NotEqual         p) = p
-tokenPosn (GreaterOrEqual   p) = p
-tokenPosn (LessOrEqual      p) = p
-tokenPosn (Mod              p) = p
-tokenPosn (Type           p _) = p
-tokenPosn (Bool           p _) = p
-tokenPosn (Int            p _) = p
-tokenPosn (Real           p _) = p
-tokenPosn (Char           p _) = p
-tokenPosn (String         p _) = p
-tokenPosn (Id             p _) = p
+token_posn (CastingString    p) = p
+token_posn (CastingChar      p) = p
+token_posn (CastingBool      p) = p
+token_posn (CastingReal      p) = p
+token_posn (CastingInt       p) = p
+token_posn (Global           p) = p
+token_posn (Struct           p) = p
+token_posn (Create           p) = p
+token_posn (Destroy          p) = p
+token_posn (Ref              p) = p
+token_posn (BeginScope       p) = p
+token_posn (EndScope         p) = p
+token_posn (Constant         p) = p
+token_posn (Foreach          p) = p
+token_posn (While            p) = p
+token_posn (Repeat           p) = p
+token_posn (Until            p) = p
+token_posn (Break            p) = p
+token_posn (Continue         p) = p
+token_posn (Return           p) = p
+token_posn (If               p) = p
+token_posn (Else             p) = p
+token_posn (In               p) = p
+token_posn (Is               p) = p
+token_posn (And              p) = p
+token_posn (Or               p) = p
+token_posn (Not              p) = p
+token_posn (BeginExpression  p) = p
+token_posn (EndExpression    p) = p
+token_posn (BeginDeclaration p) = p
+token_posn (EndDeclaration   p) = p
+token_posn (BeginListConst   p) = p
+token_posn (Dot              p) = p
+token_posn (Comma            p) = p
+token_posn (Colon            p) = p
+token_posn (SemiColon        p) = p
+token_posn (Assign           p) = p
+token_posn (Greater          p) = p
+token_posn (Less             p) = p
+token_posn (Plus             p) = p
+token_posn (Minus            p) = p
+token_posn (Mult             p) = p
+token_posn (Div              p) = p
+token_posn (Equal            p) = p
+token_posn (NotEqual         p) = p
+token_posn (GreaterOrEqual   p) = p
+token_posn (LessOrEqual      p) = p
+token_posn (Mod              p) = p
+token_posn (Type           p _) = p
+token_posn (Bool           p _) = p
+token_posn (Int            p _) = p
+token_posn (Real           p _) = p
+token_posn (Char           p _) = p
+token_posn (String         p _) = p
+token_posn (Id             p _) = p
 
 getTokens fn = unsafePerformIO (getTokensAux fn)
 
