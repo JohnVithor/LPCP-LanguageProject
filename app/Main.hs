@@ -6,7 +6,7 @@ import System.IO.Unsafe
 
 
 main :: IO ()
-main = case unsafePerformIO (parser (getTokens "programaV1V2.pe")) of
+main = case unsafePerformIO (parser (getTokens "exemploConst.LEEBA")) of
             { Left err -> print err;
               Right ans -> print ans
             }
