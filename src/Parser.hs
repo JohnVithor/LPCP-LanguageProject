@@ -3,8 +3,6 @@ module Parser where
 import Lexer
 import Text.Parsec
 import Control.Monad.IO.Class
-import Control.Exception (assert)
-import GHC.IO.Exception (assertError)
 
 -- parsers para os terminais TODO:
 
@@ -36,7 +34,7 @@ boolToken = tokenPrim show updatePos get_token where
 
 constantToken = tokenPrim show updatePos get_token where
   get_token (Constant p) = Just (Constant p)
-  get_token _        = Nothing 
+  get_token _        = Nothing
 
 semiColonToken = tokenPrim show updatePos get_token where
   get_token (SemiColon p) = Just (SemiColon p)
@@ -52,9 +50,15 @@ idToken = tokenPrim show updatePos get_token where
 
 typeToken = tokenPrim show updatePos get_token where
   get_token (Type p x) = Just (Type p x)
-  get_token _        = Nothing 
+  get_token _        = Nothing
 
-getDefaultValue (Type p "int") = Int p 0          
+
+getDefaultValue (Type p "int") = Int p 0
+getDefaultValue (Type p "real") = Real p 0.0
+getDefaultValue (Type p "char") = Char p ' '
+getDefaultValue (Type p "string") = String p ""
+getDefaultValue (Type p "bool") = Bool p True
+getDefaultValue _ = error "Error Is not a Type Token"
 
 symtableInsert symbol []  = [symbol]
 symtableInsert symbol symtable = symtable ++ [symbol]
