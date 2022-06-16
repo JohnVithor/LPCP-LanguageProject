@@ -24,7 +24,7 @@ extra-source-files:
     README.md
 
 library
-    exposed-modules: Lexer, Parser
+    exposed-modules: Lexer, Parser, Eval
 
     -- Modules included in this library but not exported.
     -- other-modules:

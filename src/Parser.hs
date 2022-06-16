@@ -3,6 +3,7 @@ module Parser where
 import Lexer
 import Text.Parsec
 import Control.Monad.IO.Class
+import Eval (eval)
 
 -- parsers para os terminais TODO:
 
@@ -52,6 +53,9 @@ typeToken = tokenPrim show updatePos get_token where
   get_token (Type p x) = Just (Type p x)
   get_token _        = Nothing
 
+plusToken = tokenPrim show updatePos get_token where
+  get_token (Plus p) = Just (Plus p)
+  get_token _      = Nothing
 
 getDefaultValue (Type p "int") = Int p 0
 getDefaultValue (Type p "real") = Real p 0.0
@@ -63,9 +67,20 @@ getDefaultValue _ = error "Error Is not a Type Token"
 symtableInsert symbol []  = [symbol]
 symtableInsert symbol symtable = symtable ++ [symbol]
 
+-- concatenação de strings "string 1" + " string 2"
+stringConcatExpression :: ParsecT [Token] [(Token,Token)] IO Token
+stringConcatExpression = do
+            a <- stringExpression
+            b <- plusToken
+            c <- stringExpression
+            return (eval a b c)
+
+-- Expressão envolvendo strings ou chars ou id
+-- TODO: verificar o tipo de idToken
+stringExpression = stringToken <|> charToken <|> idToken <|> stringConcatExpression
+
 --parser para declaração de constante int
 --constant int a = 10;
-constantDecl :: ParsecT [Token] [(Token,Token)] IO [Token]
 constantDecl = do
             const <- constantToken
             a <- typeToken
@@ -78,7 +93,6 @@ constantDecl = do
             return (const:a:b:c:d:[e])
 
 
-updatePos :: SourcePos -> Token -> [Token] -> SourcePos
 updatePos pos _ (tok:_) = pos -- necessita melhoria
 updatePos pos _ []      = pos
 
