@@ -1,71 +1,13 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use <$>" #-}
 module Parser where
 
 import Lexer
 import Text.Parsec
 import Control.Monad.IO.Class
 import Eval (eval)
-
--- parsers para os terminais TODO:
-
-globalToken :: ParsecT [Token] u IO Token
-globalToken = tokenPrim show updatePos get_token where
-  get_token (Global p) = Just (Global p)
-  get_token _          = Nothing
-
-
-intToken = tokenPrim show updatePos get_token where
-  get_token (Int p x) = Just (Int p x)
-  get_token _       = Nothing
-
-stringToken = tokenPrim show updatePos get_token where
-  get_token (String p x) = Just (String p x)
-  get_token _       = Nothing
-
-realToken = tokenPrim show updatePos get_token where
-  get_token (Real p x) = Just (Real p x)
-  get_token _       = Nothing
-
-charToken = tokenPrim show updatePos get_token where
-  get_token (Char p x) = Just (Char p x)
-  get_token _       = Nothing
-
-boolToken = tokenPrim show updatePos get_token where
-  get_token (Bool p x) = Just (Bool p x)
-  get_token _       = Nothing
-
-constantToken = tokenPrim show updatePos get_token where
-  get_token (Constant p) = Just (Constant p)
-  get_token _        = Nothing
-
-semiColonToken = tokenPrim show updatePos get_token where
-  get_token (SemiColon p) = Just (SemiColon p)
-  get_token _         = Nothing
-
-assignToken = tokenPrim show updatePos get_token where
-  get_token (Assign p) = Just (Assign p)
-  get_token _      = Nothing
-
-idToken = tokenPrim show updatePos get_token where
-  get_token (Id p x) = Just (Id p x)
-  get_token _      = Nothing
-
-typeToken = tokenPrim show updatePos get_token where
-  get_token (Type p x) = Just (Type p x)
-  get_token _        = Nothing
-
-plusToken = tokenPrim show updatePos get_token where
-  get_token (Plus p) = Just (Plus p)
-  get_token _      = Nothing
-
-getDefaultValue (Type p "int") = Int p 0
-getDefaultValue (Type p "real") = Real p 0.0
-getDefaultValue (Type p "char") = Char p ' '
-getDefaultValue (Type p "string") = String p ""
-getDefaultValue (Type p "bool") = Bool p True
-getDefaultValue _ = error "Error Is not a Type Token"
-
-symtableInsert symbol []  = [symbol]
-symtableInsert symbol symtable = symtable ++ [symbol]
+import TokenParser
+import SymTable
 
 -- concatenação de strings "string 1" + " string 2"
 stringConcatExpression :: ParsecT [Token] [(Token,Token)] IO Token
@@ -81,6 +23,7 @@ stringExpression = stringToken <|> charToken <|> idToken <|> stringConcatExpress
 
 --parser para declaração de constante int
 --constant int a = 10;
+constantDecl :: ParsecT [Token] [(Token, Token)] IO [Token]
 constantDecl = do
             const <- constantToken
             a <- typeToken
@@ -121,9 +64,6 @@ varAssignment = do
             d <- semiColonToken
             updateState(symtableInsert (a, getDefaultValue c))
             return (a:b:c:[d])
-
-updatePos pos _ (tok:_) = pos -- necessita melhoria
-updatePos pos _ []      = pos
 
 program :: ParsecT [Token] [(Token,Token)] IO [Token]
 program = do
