@@ -2,39 +2,74 @@ module TokenParser where
 
 import Lexer
 import Text.Parsec
+import Type
 
 updatePos :: p1 -> p2 -> [a] -> p1
 updatePos pos _ (tok:_) = pos -- necessita melhoria
 updatePos pos _ []      = pos
+
+getIdData :: Token -> String
+getIdData (Id _ x) = x
+getIdData _ = error "Not an Id token"
 
 globalToken :: ParsecT [Token] u IO Token
 globalToken = tokenPrim show updatePos get_token where
   get_token (Global p) = Just (Global p)
   get_token _          = Nothing
 
-intToken :: ParsecT [Token] u IO Token
+structToken :: ParsecT [Token] u IO Token
+structToken = tokenPrim show updatePos get_token where
+  get_token (Lexer.Struct p) = Just (Lexer.Struct p)
+  get_token _          = Nothing
+
+beginScopeToken :: ParsecT [Token] u IO Token
+beginScopeToken = tokenPrim show updatePos get_token where
+  get_token (BeginScope p) = Just (BeginScope p)
+  get_token _          = Nothing
+
+endScopeToken :: ParsecT [Token] u IO Token
+endScopeToken = tokenPrim show updatePos get_token where
+  get_token (EndScope p) = Just (EndScope p)
+  get_token _          = Nothing
+
+colonToken :: ParsecT [Token] u IO Token
+colonToken = tokenPrim show updatePos get_token where
+  get_token (Colon p) = Just (Colon p)
+  get_token _          = Nothing
+
+beginListConstToken :: ParsecT [Token] u IO Token
+beginListConstToken = tokenPrim show updatePos get_token where
+  get_token (BeginListConst p) = Just (BeginListConst p)
+  get_token _          = Nothing
+
+endListConstToken :: ParsecT [Token] u IO Token
+endListConstToken = tokenPrim show updatePos get_token where
+  get_token (EndListConst p) = Just (EndListConst p)
+  get_token _          = Nothing
+
+intToken :: ParsecT [Token] u IO Type
 intToken = tokenPrim show updatePos get_token where
-  get_token (Int p x) = Just (Int p x)
+  get_token (Lexer.Int p x) = Just (Type.Int x)
   get_token _       = Nothing
 
-stringToken :: ParsecT [Token] u IO Token
+stringToken :: ParsecT [Token] u IO Type
 stringToken = tokenPrim show updatePos get_token where
-  get_token (String p x) = Just (String p x)
+  get_token (Lexer.String p x) = Just (Type.String x)
   get_token _       = Nothing
 
-realToken :: ParsecT [Token] u IO Token
+realToken :: ParsecT [Token] u IO Type
 realToken = tokenPrim show updatePos get_token where
-  get_token (Real p x) = Just (Real p x)
+  get_token (Lexer.Real p x) = Just (Type.Real x)
   get_token _       = Nothing
 
-charToken :: ParsecT [Token] u IO Token
+charToken :: ParsecT [Token] u IO Type
 charToken = tokenPrim show updatePos get_token where
-  get_token (Char p x) = Just (Char p x)
+  get_token (Lexer.Char p x) = Just (Type.Char x)
   get_token _       = Nothing
 
-boolToken :: ParsecT [Token] u IO Token
+boolToken :: ParsecT [Token] u IO Type
 boolToken = tokenPrim show updatePos get_token where
-  get_token (Bool p x) = Just (Bool p x)
+  get_token (Lexer.Bool p x) = Just (Type.Bool x)
   get_token _       = Nothing
 
 constantToken :: ParsecT [Token] u IO Token
