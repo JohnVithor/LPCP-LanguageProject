@@ -156,3 +156,43 @@ isToken :: ParsecT [Token] u IO Token
 isToken = tokenPrim show updatePos get_token where
   get_token (Is p) = Just (Is p)
   get_token _      = Nothing
+
+foreachToken :: ParsecT [Token] u IO Token
+foreachToken = tokenPrim show updatePos get_token where
+  get_token (Foreach p) = Just (Foreach p)
+  get_token _      = Nothing
+
+whileToken :: ParsecT [Token] u IO Token
+whileToken = tokenPrim show updatePos get_token where
+  get_token (While p) = Just (While p)
+  get_token _      = Nothing
+
+repeatToken :: ParsecT [Token] u IO Token
+repeatToken = tokenPrim show updatePos get_token where
+  get_token (Repeat p) = Just (Repeat p)
+  get_token _      = Nothing
+
+untilToken :: ParsecT [Token] u IO Token
+untilToken = tokenPrim show updatePos get_token where
+  get_token (Until p) = Just (Until p)
+  get_token _      = Nothing
+
+openParenthesesToken :: ParsecT [Token] u IO Token
+openParenthesesToken = tokenPrim show updatePos get_token where
+  get_token (BeginExpression p) = Just (BeginExpression p)
+  get_token _      = Nothing
+
+closeParenthesesToken :: ParsecT [Token] u IO Token
+closeParenthesesToken = tokenPrim show updatePos get_token where
+  get_token (EndExpression p) = Just (EndExpression p)
+  get_token _      = Nothing
+
+ifToken :: :: ParsecT [Token] u IO Token
+ifToken = tokenPrim show updatePos get_token where
+  get_token (If p) = Just (If p)
+  get_token _      = Nothing
+
+elseToken :: :: ParsecT [Token] u IO Token
+elseToken = tokenPrim show updatePos get_token where
+  get_token (Else p) = Just (Else p)
+  get_token _      = Nothing
