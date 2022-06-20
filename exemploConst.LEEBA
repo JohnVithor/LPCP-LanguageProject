@@ -1,1 +1,8 @@
-constant string a = 45;
+begin struct Aluno:
+  string nome;
+  int idade;
+  real media;
+end Aluno;
+
+string a = 45;
+a = 23;

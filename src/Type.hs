@@ -9,5 +9,7 @@ data Type = Bool Bool       |
             Struct String [(String, Type)]
             deriving (Eq,Show)
 
-typeTable :: [Type]
-typeTable = [Bool False, Int 0, Real 0.0, Char ' ', String ""]
+
+getStructName :: Type -> String
+getStructName (Struct name _) = name
+getStructName _ = error "Not a Struct"
