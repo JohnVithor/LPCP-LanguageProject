@@ -11,9 +11,9 @@ end Aluno;
 
 begin struct Prof:
   string nome;
-  int idade;
+  Aluno[] alunos;
 end Prof;
 
-begin int fibonacci (int v1):
+begin fibonacci (int v1):
 
 end fibonacci;

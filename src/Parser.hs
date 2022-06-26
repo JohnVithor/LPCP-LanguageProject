@@ -22,16 +22,20 @@ globalVars = try (do
         e <- semiColonToken
         return d) <|> return []
 
-structDeclarations :: ParsecT [Token] MyState IO [Type]
-structDeclarations = (do
-                    c <- structDeclaration
-                    e <- try structDeclarations <|> functionCreations
-                    return (c:e))
-                    <|> return []
+declaration :: ParsecT [Token] MyState IO Type
+declaration = do
+        a <- beginScopeToken
+        try structDeclaration <|> try functionCreation <|> subprogramCreation Nothing
+
+declarations :: ParsecT [Token] MyState IO [Type]
+declarations = (do
+                c <- declaration
+                e <- declarations
+                return (c:e))
+                <|> return []
 
 structDeclaration :: ParsecT [Token] MyState IO Type
 structDeclaration = do
-            a <- beginScopeToken
             b <- structToken
             c <- idToken
             d <- colonToken
@@ -148,17 +152,13 @@ varAssignment = do
             updateState(symtableUpdate (getIdData a, c))
             return (Type.Bool False) -- O ideal seria não retornar nada.
 
-functionCreations :: ParsecT [Token] MyState IO [Type]
-functionCreations = (do
-                    c <- functionCreation
-                    e <- functionCreations
-                    return (c:e))
-                    <|> return []
-
 functionCreation :: ParsecT [Token] MyState IO Type
 functionCreation = do
-        a <- beginScopeToken 
-        b <- dataType 
+        b <- dataType
+        subprogramCreation (Just b)
+
+subprogramCreation :: Maybe Type -> ParsecT [Token] MyState IO Type
+subprogramCreation ret = do
         c <- idToken 
         d <- beginExpressionToken
         e <- params
@@ -168,13 +168,12 @@ functionCreation = do
         i <- endScopeToken 
         j <- idToken 
         l <- semiColonToken 
-        if getIdData c /= getIdData j then fail "Nome da função não é o mesmo"
+        if getIdData c /= getIdData j then fail "Nome do subprograma não é o mesmo"
         else
                 do 
                 -- TODO: atualizar a lista de comandos !!!
-                updateState(subsprogramTableInsert (getIdData c, Just b, e, [c]))
+                updateState(subsprogramTableInsert (getIdData c, ret, e, [c]))
                 return (Type.Bool False)
-
 
 params :: ParsecT [Token] MyState IO [(String, Type)]
 params = (do
@@ -192,7 +191,7 @@ param = do
 program :: ParsecT [Token] MyState IO Type
 program = do
             a <- globalVars
-            b <- try structDeclarations <|> functionCreations
+            b <- declarations
             s1 <- getState
             liftIO (print s1)
             eof
