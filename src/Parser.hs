@@ -10,6 +10,14 @@ import TokenParser
 import SymTable
 import Control.Monad
 import Type
+import Text.Parsec.Token (GenTokenParser(semi))
+
+structDeclarations :: ParsecT [Token] ([(String, Type)], [Type]) IO [Type]
+structDeclarations = (do
+                    c <- structDeclaration
+                    e <- structDeclarations
+                    return (c:e))
+                    <|> return []
 
 structDeclaration :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
 structDeclaration = do
@@ -38,12 +46,11 @@ fieldDeclaration = do
             a <- typeToken
             b <- idToken
             c <- semiColonToken
-            -- verificar se o id já não existe na tabela de simbolos
             s <- getState 
             return (getIdData b, typeTableGet a s)
 
 dataType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
-dataType = primitiveType <|> listType
+dataType = try primitiveType <|> listType
         -- <|>
         -- (do 
         -- a <- idToken
@@ -54,21 +61,32 @@ primitiveType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type.Type
 primitiveType = intToken <|> realToken <|> boolToken <|> charToken <|> stringToken
 
 listType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
-listType = simpleListType <|> doubleListType
+listType = try simpleListType <|> doubleListType
 
 simpleListType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
 simpleListType = do
             a <- primitiveType
             b <- beginListConstToken
             c <- endListConstToken
-            return (Type.List [a])
+            return (Type.List a [])
 
 doubleListType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
 doubleListType = do
             a <- simpleListType
             b <- beginListConstToken
             c <- endListConstToken
-            return (Type.List [a])
+            return (Type.List a [])
+
+globalVars :: ParsecT [Token] ([(String, Type)], [Type]) IO [Type]
+globalVars = try (do
+        a <- beginScopeToken 
+        b <- globalToken 
+        c <- colonToken 
+        d <- varDeclarations
+        e <- endScopeToken 
+        f <- globalToken 
+        e <- semiColonToken 
+        return d) <|> return []
 
 -- concatenação de strings "string 1" + " string 2"
 stringConcatExpression :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
@@ -113,6 +131,13 @@ varInit = do
             updateState(symtableInsert (getIdData b, d))
             return (Type.Bool False) -- O ideal serial não retornar nada.
 
+varDeclarations :: ParsecT [Token] ([(String,Type)], [Type]) IO [Type]
+varDeclarations = (do
+                    c <- varDeclaration
+                    e <- varDeclarations
+                    return (c:e))
+                    <|> return []
+
 --int a;
 varDeclaration :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
 varDeclaration = do
@@ -121,7 +146,7 @@ varDeclaration = do
             c <- semiColonToken
             s <- getState
             updateState(symtableInsert (getIdData b, typeTableGet a s))
-            return (Type.Bool False) -- O ideal serial não retornar nada.
+            return (typeTableGet a s) -- O ideal serial não retornar nada.
 
 --a = 10;
 varAssignment :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
@@ -136,11 +161,11 @@ varAssignment = do
 
 program :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
 program = do
-            a <- structDeclaration
-            b <- varInit
+            a <- globalVars
+            b <- structDeclarations
             s1 <- getState 
             liftIO (print s1)
-            c <- varAssignment
+        --     c <- varAssignment
             s2 <- getState 
             liftIO (print s2)
             eof

@@ -187,12 +187,12 @@ closeParenthesesToken = tokenPrim show updatePos get_token where
   get_token (EndExpression p) = Just (EndExpression p)
   get_token _      = Nothing
 
-ifToken :: :: ParsecT [Token] u IO Token
+ifToken :: ParsecT [Token] u IO Token
 ifToken = tokenPrim show updatePos get_token where
   get_token (If p) = Just (If p)
   get_token _      = Nothing
 
-elseToken :: :: ParsecT [Token] u IO Token
+elseToken :: ParsecT [Token] u IO Token
 elseToken = tokenPrim show updatePos get_token where
   get_token (Else p) = Just (Else p)
   get_token _      = Nothing

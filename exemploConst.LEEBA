@@ -1,8 +1,15 @@
+begin global:
+  int a;
+  real c;
+end global;
+
 begin struct Aluno:
   string nome;
   int idade;
   real media;
 end Aluno;
 
-string a = 45;
-a = 23;
+begin struct Prof:
+  string nome;
+  int idade;
+end Aluno;

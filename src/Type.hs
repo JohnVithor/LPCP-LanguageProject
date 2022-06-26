@@ -1,11 +1,11 @@
 module Type where
 
-data Type = Bool Bool       | 
-            Int Int         |
-            Real Double     | 
-            Char Char       | 
-            String String   |
-            List [Type]     |
+data Type = Bool Bool        | 
+            Int Int          |
+            Real Double      | 
+            Char Char        | 
+            String String    |
+            List Type [Type] |
             Struct String [(String, Type)]
             deriving (Eq,Show)
 
