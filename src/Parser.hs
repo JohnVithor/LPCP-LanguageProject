@@ -11,6 +11,7 @@ import SymTable
 import Control.Monad
 import Type
 import Text.Parsec.Token (GenTokenParser(semi))
+import Data.Maybe
 
 structDeclarations :: ParsecT [Token] ([(String, Type)], [Type]) IO [Type]
 structDeclarations = (do
@@ -25,7 +26,7 @@ structDeclaration = do
             b <- structToken
             c <- idToken
             d <- colonToken
-            e <- fieldDeclarations
+            e <- fieldCreations
             f <- endScopeToken
             g <- idToken
             h <- semiColonToken
@@ -34,20 +35,40 @@ structDeclaration = do
             updateState(typeTableInsert (Type.Struct (getIdData c) e))
             return (Type.Bool False)
 
-fieldDeclarations :: ParsecT [Token] ([(String,Type)], [Type]) IO [(String, Type)]
-fieldDeclarations = (do
-                    c <- fieldDeclaration
-                    e <- fieldDeclarations
+fieldCreations :: ParsecT [Token] ([(String,Type)], [Type]) IO [(String, Type)]
+fieldCreations = (do
+                    c <- fieldCreation
+                    e <- fieldCreations
                     return (c:e))
                     <|> return []
-                    
-fieldDeclaration :: ParsecT [Token] ([(String,Type)], [Type]) IO (String, Type)
-fieldDeclaration = do
-            a <- typeToken
+
+fieldCreation :: ParsecT [Token] ([(String, Type)], [Type]) IO (String, Type)
+fieldCreation = do
+            a <- typeToken <|> idToken
+            s <- getState
             b <- idToken
-            c <- semiColonToken
-            s <- getState 
-            return (getIdData b, typeTableGet a s)
+            c <- initialization (typeTableGet a s)
+            return (getIdData b, c)
+
+
+initialization :: Type -> ParsecT [Token] ([(String, Type)], [Type]) IO Type
+initialization t = try (do
+        c <- assignToken
+        d <- intToken <|> stringToken <|> charToken <|> realToken <|> boolToken
+        e <- semiColonToken
+        if compatible t d then return d else fail "tipos diferentes")
+        <|> 
+        (do 
+        e <- semiColonToken
+        return t)
+
+compatible :: Type -> Type -> Bool
+compatible (Type.Int _) (Type.Int _) = True
+compatible (Type.Real _) (Type.Real _) = True
+compatible (Type.String _) (Type.String _) = True
+compatible (Type.Char _) (Type.Char _) = True
+compatible (Type.Bool _) (Type.Bool _) = True
+compatible _ _ = False
 
 dataType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
 dataType = try primitiveType <|> listType
@@ -79,13 +100,13 @@ doubleListType = do
 
 globalVars :: ParsecT [Token] ([(String, Type)], [Type]) IO [Type]
 globalVars = try (do
-        a <- beginScopeToken 
-        b <- globalToken 
-        c <- colonToken 
+        a <- beginScopeToken
+        b <- globalToken
+        c <- colonToken
         d <- varDeclarations
-        e <- endScopeToken 
-        f <- globalToken 
-        e <- semiColonToken 
+        e <- endScopeToken
+        f <- globalToken
+        e <- semiColonToken
         return d) <|> return []
 
 -- concatenação de strings "string 1" + " string 2"
@@ -163,11 +184,8 @@ program :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
 program = do
             a <- globalVars
             b <- structDeclarations
-            s1 <- getState 
+            s1 <- getState
             liftIO (print s1)
-        --     c <- varAssignment
-            s2 <- getState 
-            liftIO (print s2)
             eof
             return (Type.Bool False)
 

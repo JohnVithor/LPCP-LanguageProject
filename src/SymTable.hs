@@ -13,7 +13,8 @@ typeTableGet (Type _ name) (_, tbl)
     | name == "real" = Type.Real 0.0
     | name == "char" = Type.Char ' '
     | name == "string" = Type.String ""
-    | otherwise = getUserDefinedType name tbl
+    | otherwise = error "tipo primitivo não reconhecido"
+typeTableGet (Id _ name) (_, tbl) = getUserDefinedType name tbl
 typeTableGet _ _ = error "Not a type token"
 
 getUserDefinedType :: String -> [Type] -> Type

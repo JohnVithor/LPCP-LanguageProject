@@ -5,11 +5,11 @@ end global;
 
 begin struct Aluno:
   string nome;
-  int idade;
-  real media;
+  int idade = 4;
+  real media = 3.5;
 end Aluno;
 
 begin struct Prof:
-  string nome;
+  Aluno aluno;
   int idade;
 end Aluno;
