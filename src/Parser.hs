@@ -13,6 +13,17 @@ import Type
 import Text.Parsec.Token (GenTokenParser(semi))
 import Data.Maybe
 
+globalVars :: ParsecT [Token] ([(String, Type)], [Type]) IO [Type]
+globalVars = try (do
+        a <- beginScopeToken
+        b <- globalToken
+        c <- colonToken
+        d <- varCreations
+        e <- endScopeToken
+        f <- globalToken
+        e <- semiColonToken
+        return d) <|> return []
+
 structDeclarations :: ParsecT [Token] ([(String, Type)], [Type]) IO [Type]
 structDeclarations = (do
                     c <- structDeclaration
@@ -29,11 +40,12 @@ structDeclaration = do
             e <- fieldCreations
             f <- endScopeToken
             g <- idToken
-            h <- semiColonToken
-            -- comparar c com g
-            -- adicionar struct criada na tabela de tipos
-            updateState(typeTableInsert (Type.Struct (getIdData c) e))
-            return (Type.Bool False)
+            if getIdData c /= getIdData g then fail "Nome da struct não é o mesmo"
+            else
+                do
+                h <- semiColonToken
+                updateState(typeTableInsert (Type.Struct (getIdData c) e))
+                return (Type.Bool False)
 
 fieldCreations :: ParsecT [Token] ([(String,Type)], [Type]) IO [(String, Type)]
 fieldCreations = (do
@@ -44,12 +56,11 @@ fieldCreations = (do
 
 fieldCreation :: ParsecT [Token] ([(String, Type)], [Type]) IO (String, Type)
 fieldCreation = do
-            a <- typeToken <|> idToken
+            a <- dataType
             s <- getState
             b <- idToken
-            c <- initialization (typeTableGet a s)
+            c <- initialization a
             return (getIdData b, c)
-
 
 initialization :: Type -> ParsecT [Token] ([(String, Type)], [Type]) IO Type
 initialization t = try (do
@@ -57,57 +68,25 @@ initialization t = try (do
         d <- intToken <|> stringToken <|> charToken <|> realToken <|> boolToken
         e <- semiColonToken
         if compatible t d then return d else fail "tipos diferentes")
-        <|> 
-        (do 
+        <|>
+        (do
         e <- semiColonToken
         return t)
 
-compatible :: Type -> Type -> Bool
-compatible (Type.Int _) (Type.Int _) = True
-compatible (Type.Real _) (Type.Real _) = True
-compatible (Type.String _) (Type.String _) = True
-compatible (Type.Char _) (Type.Char _) = True
-compatible (Type.Bool _) (Type.Bool _) = True
-compatible _ _ = False
-
 dataType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
-dataType = try primitiveType <|> listType
-        -- <|>
-        -- (do 
-        -- a <- idToken
-        -- -- procurar id na tabela de tipos
-        -- return tipo_tabela_tipos)
+dataType = do
+        s <- getState
+        t <- typeToken <|> idToken
+        listType (typeTableGet t s)
 
-primitiveType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type.Type
-primitiveType = intToken <|> realToken <|> boolToken <|> charToken <|> stringToken
+listType :: Type -> ParsecT [Token] ([(String,Type)], [Type]) IO Type
+listType t = try (do
+        b <- beginListConstToken
+        c <- endListConstToken
+        listType (Type.List t [])
+        -- melhorar isso aqui depois
+        ) <|> return t
 
-listType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
-listType = try simpleListType <|> doubleListType
-
-simpleListType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
-simpleListType = do
-            a <- primitiveType
-            b <- beginListConstToken
-            c <- endListConstToken
-            return (Type.List a [])
-
-doubleListType :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
-doubleListType = do
-            a <- simpleListType
-            b <- beginListConstToken
-            c <- endListConstToken
-            return (Type.List a [])
-
-globalVars :: ParsecT [Token] ([(String, Type)], [Type]) IO [Type]
-globalVars = try (do
-        a <- beginScopeToken
-        b <- globalToken
-        c <- colonToken
-        d <- varDeclarations
-        e <- endScopeToken
-        f <- globalToken
-        e <- semiColonToken
-        return d) <|> return []
 
 -- concatenação de strings "string 1" + " string 2"
 stringConcatExpression :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
@@ -130,44 +109,35 @@ stringExpression = stringToken
 constantDecl :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
 constantDecl = do
             const <- constantToken
-            a <- typeToken
+            -- TODO: usar essa informação sobre ser constante
+            a <- typeToken 
             b <- idToken
             c <- assignToken
             d <- intToken <|> stringToken <|> charToken <|> realToken <|> boolToken
             e <- semiColonToken
-            -- TODO: validar o tipo (gramática de atributos)
-            -- TODO adicionar informação que é uma constante e não pode ser modificada
-            updateState(symtableInsert (getIdData b, d))
-            return (Type.Bool False) -- O ideal serial não retornar nada.
+            s <- getState 
+            if not (compatible (typeTableGet a s) d) then fail "tipos diferentes" else 
+                do
+                updateState(symtableInsert (getIdData b, d))
+                return (Type.Bool False) -- O ideal seria não retornar nada.
 
---int a = 10;
-varInit :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
-varInit = do
-            a <- typeToken
+varCreation :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
+varCreation = do
+            a <- dataType
+            s <- getState
             b <- idToken
-            c <- assignToken
-            d <- intToken <|> stringToken <|> charToken <|> realToken <|> boolToken
-            e <- semiColonToken
-            -- TODO: validar o tipo (gramática de atributos)
-            updateState(symtableInsert (getIdData b, d))
-            return (Type.Bool False) -- O ideal serial não retornar nada.
+            c <- initialization a
+            if not (compatible a c) then fail "tipos diferentes" else 
+                do
+                updateState(symtableInsert (getIdData b, c))
+                return (Type.Bool False) -- O ideal seria não retornar nada.
 
-varDeclarations :: ParsecT [Token] ([(String,Type)], [Type]) IO [Type]
-varDeclarations = (do
-                    c <- varDeclaration
-                    e <- varDeclarations
+varCreations :: ParsecT [Token] ([(String,Type)], [Type]) IO [Type]
+varCreations = (do
+                    c <- varCreation
+                    e <- varCreations
                     return (c:e))
                     <|> return []
-
---int a;
-varDeclaration :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
-varDeclaration = do
-            a <- typeToken
-            b <- idToken
-            c <- semiColonToken
-            s <- getState
-            updateState(symtableInsert (getIdData b, typeTableGet a s))
-            return (typeTableGet a s) -- O ideal serial não retornar nada.
 
 --a = 10;
 varAssignment :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
@@ -178,7 +148,7 @@ varAssignment = do
             d <- semiColonToken
             -- TODO: validar o tipo (gramática de atributos)
             updateState(symtableUpdate (getIdData a, c))
-            return (Type.Bool False) -- O ideal serial não retornar nada.
+            return (Type.Bool False) -- O ideal seria não retornar nada.
 
 program :: ParsecT [Token] ([(String,Type)], [Type]) IO Type
 program = do

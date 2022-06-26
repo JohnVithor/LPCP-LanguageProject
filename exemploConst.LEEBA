@@ -10,6 +10,6 @@ begin struct Aluno:
 end Aluno;
 
 begin struct Prof:
-  Aluno aluno;
+  string nome;
   int idade;
-end Aluno;
+end Prof;
