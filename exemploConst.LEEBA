@@ -13,3 +13,7 @@ begin struct Prof:
   string nome;
   int idade;
 end Prof;
+
+begin int fibonacci (int v1):
+
+end fibonacci;

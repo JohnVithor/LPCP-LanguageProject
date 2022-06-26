@@ -32,6 +32,16 @@ endScopeToken = tokenPrim show updatePos get_token where
   get_token (EndScope p) = Just (EndScope p)
   get_token _          = Nothing
 
+beginExpressionToken :: ParsecT [Token] u IO Token
+beginExpressionToken = tokenPrim show updatePos get_token where
+  get_token (BeginExpression p) = Just (BeginExpression p)
+  get_token _          = Nothing
+
+endExpressionToken :: ParsecT [Token] u IO Token
+endExpressionToken = tokenPrim show updatePos get_token where
+  get_token (EndExpression p) = Just (EndExpression p)
+  get_token _          = Nothing
+
 colonToken :: ParsecT [Token] u IO Token
 colonToken = tokenPrim show updatePos get_token where
   get_token (Colon p) = Just (Colon p)
