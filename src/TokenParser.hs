@@ -211,3 +211,23 @@ refToken :: ParsecT [Token] u IO Token
 refToken = tokenPrim show updatePos get_token where
   get_token (Ref p) = Just (Ref p)
   get_token _      = Nothing
+
+returnToken :: ParsecT [Token] u IO Token
+returnToken = tokenPrim show updatePos get_token where
+  get_token (Return p) = Just (Return p)
+  get_token _      = Nothing
+
+destroyToken :: ParsecT [Token] u IO Token
+destroyToken = tokenPrim show updatePos get_token where
+  get_token (Destroy p) = Just (Destroy p)
+  get_token _      = Nothing
+
+continueToken :: ParsecT [Token] u IO Token
+continueToken = tokenPrim show updatePos get_token where
+  get_token (Continue p) = Just (Continue p)
+  get_token _      = Nothing
+
+breakToken :: ParsecT [Token] u IO Token
+breakToken = tokenPrim show updatePos get_token where
+  get_token (Break p) = Just (Break p)
+  get_token _      = Nothing

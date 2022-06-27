@@ -195,6 +195,39 @@ refParam = do
         b <- idToken 
         return (getIdData b, a)
 
+returnCall :: ParsecT [Token] MyState IO Type
+returnCall = do
+        -- TODO: pensar em como voltar para o lugar que chamou a função e devolver esse valor
+        a <- returnToken
+        return (Type.Bool True)
+        -- expression
+
+destroyCall :: ParsecT [Token] MyState IO Type
+destroyCall = do
+        a <- destroyToken
+        b <- idToken 
+        -- remover id da heap
+        return (Type.Bool True)
+
+statements :: ParsecT [Token] MyState IO [Type]
+statements = (do
+        c <- try statement
+        e <- statements
+        return (c:e))
+        <|> return []
+
+statement :: ParsecT [Token] MyState IO Type
+statement = try varCreation
+        <|> try varAssignment
+        -- <|> try conditional
+        -- <|> try loop
+        -- <|> try procedureCall
+        <|> try returnCall
+        <|> try destroyCall
+        -- <|> try continueToken
+        -- <|> breakToken
+
+
 program :: ParsecT [Token] MyState IO Type
 program = do
             a <- globalVars
