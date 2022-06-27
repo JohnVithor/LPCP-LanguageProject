@@ -207,6 +207,7 @@ elseToken = tokenPrim show updatePos get_token where
   get_token (Else p) = Just (Else p)
   get_token _      = Nothing
 
-voidToken :: ParsecT [Token] u IO Type
-voidToken = tokenPrim show updatePos get_token where
+refToken :: ParsecT [Token] u IO Token
+refToken = tokenPrim show updatePos get_token where
+  get_token (Ref p) = Just (Ref p)
   get_token _      = Nothing

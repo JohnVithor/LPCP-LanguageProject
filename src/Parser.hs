@@ -177,13 +177,20 @@ subprogramCreation ret = do
 
 params :: ParsecT [Token] MyState IO [(String, Type)]
 params = (do
-        c <- param
+        c <- try param <|> refParam
         e <- params
         return (c:e))
         <|> return []
 
 param :: ParsecT [Token] MyState IO (String, Type)
 param = do 
+        a <- dataType
+        b <- idToken 
+        return (getIdData b, a)
+
+refParam :: ParsecT [Token] MyState IO (String, Type)
+refParam = do 
+        ref <- refToken
         a <- dataType
         b <- idToken 
         return (getIdData b, a)
