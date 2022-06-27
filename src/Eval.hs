@@ -5,12 +5,30 @@ import Type
 
 eval :: Type -> Token -> Type -> Type
 eval (Type.String x) (Plus _ ) (Type.String y) = Type.String (x ++ y)
-eval (Type.Int x) (Plus _ ) (Type.Int y _) = Type.Int (x + y) 
-eval (Type.Real x) (Plus _ ) (Type.Real y _) = Type.Real (x + y) 
-eval (Type.Int x) (Plus _ ) (Type.Real y _) = Type.Real (x + y) 
-eval (Type.Real x) (Plus _ ) (Type.Int y _) = Type.Real (x + y) 
-eval (Type.Char x) (Plus _ ) (Type.Char y _) = Type.String ([x] ++ [y]) 
-eval (Type.String x) (Plus _ ) (Type.Char y _) = Type.String (x ++ [y]) 
-eval (Type.Char x) (Plus _ ) (Type.String y _) = Type.String ([x] ++ y) 
-
+eval (Type.Char x) (Plus _ ) (Type.Char y ) = Type.String ([x] ++ [y]) 
+eval (Type.String x) (Plus _ ) (Type.Char y ) = Type.String (x ++ [y]) 
+eval (Type.Char x) (Plus _ ) (Type.String y ) = Type.String ([x] ++ y)
+eval (Type.Int x) (Plus _ ) (Type.Int y) = Type.Int (x + y) 
+eval (Type.Real x) (Plus _ ) (Type.Real y) = Type.Real (x + y) 
+eval (Type.Int x) (Plus _ ) (Type.Real y) = Type.Real (x + y) 
+eval (Type.Real x) (Plus _ ) (Type.Int y) = Type.Real (x + y)
+eval (Type.Int x) (Minus _ ) (Type.Int y) = Type.Int (x - y) 
+eval (Type.Real x) (Minus _ ) (Type.Real y) = Type.Real (x - y) 
+eval (Type.Int x) (Minus _ ) (Type.Real y) = Type.Real (x - y) 
+eval (Type.Real x) (Minus _ ) (Type.Int y) = Type.Real (x - y)
+eval (Type.Int x) (Mult _ ) (Type.Int y) = Type.Int (x * y) 
+eval (Type.Real x) (Mult _ ) (Type.Real y) = Type.Real (x * y) 
+eval (Type.Int x) (Mult _ ) (Type.Real y) = Type.Real (x * y) 
+eval (Type.Real x) (Mult _ ) (Type.Int y) = Type.Real (x * y) 
+eval (Type.Int x) (Div _ ) (Type.Int y) = Type.Int (x div y) 
+eval (Type.Real x) (Div _ ) (Type.Real y) = Type.Real (x / y) 
+eval (Type.Int x) (Div _ ) (Type.Real y) = Type.Real (x / y) 
+eval (Type.Real x) (Div _ ) (Type.Int y) = Type.Real (x / y)
+eval (Type.Int x) (Mod _ ) (Type.Int y) = Type.Int (x mod y)
+eval (Type.Bool x) (And _ ) (Type.Bool y) = Type.Bool (x && y)
+eval (Type.Bool x) (Or _ ) (Type.Bool y) = Type.Bool (x || y) 
 eval _ _ _ = error "deu ruim"
+
+eval_uni :: Token -> Type -> Type
+eval_uni (Not _ ) (Type.Bool y) = Type.Bool (not y) 
+eval_uni _ _ _ = error "deu ruim"
