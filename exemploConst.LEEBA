@@ -1,6 +1,6 @@
 begin global:
   int a;
-  real c;
+  constant real c = 0.0;
 end global;
 
 begin struct Aluno:

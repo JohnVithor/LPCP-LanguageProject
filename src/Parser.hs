@@ -136,7 +136,7 @@ varCreation = do
 
 varCreations :: ParsecT [Token] MyState IO [Type]
 varCreations = (do
-                    c <- varCreation
+                    c <- try varCreation <|> constantDecl
                     e <- varCreations
                     return (c:e))
                     <|> return []
@@ -192,8 +192,6 @@ program :: ParsecT [Token] MyState IO Type
 program = do
             a <- globalVars
             b <- declarations
-            s1 <- getState
-            liftIO (print s1)
             eof
             return (Type.Bool False)
 
