@@ -1,1 +1,6 @@
-(10 - 8) / 5 % 4
+begin int main ():
+  int ba = 1+3*2+1;
+  int c = 43/2;
+  real r = 2.3 * 2;
+end main;
+

@@ -6,9 +6,17 @@ import Type
 type Subprogram = (String, Maybe Type, [(String, Type)], [Token])
 type MyState = ([(String,Type)], [Type], [Subprogram])
 
+getMainFunc :: MyState -> Subprogram
+getMainFunc (_, _, subs) =  getMainFuncInner subs
+
+getMainFuncInner :: [Subprogram] -> Subprogram
+getMainFuncInner [] = error "main not found"
+getMainFuncInner ((name, t, args, stmts):subs) =
+                               if name == "main" then (name, t, args, stmts)
+                               else getMainFuncInner subs
+
 subsprogramTableInsert :: Subprogram -> MyState -> MyState
 subsprogramTableInsert sub (ty, tbl, subs) = (ty, tbl, subs ++ [sub])
-
 
 typeTableInsert :: Type -> MyState -> MyState
 typeTableInsert t (ty, tbl, subs) = (ty, tbl ++ [t], subs)

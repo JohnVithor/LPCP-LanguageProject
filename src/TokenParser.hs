@@ -251,3 +251,28 @@ breakToken :: ParsecT [Token] u IO Token
 breakToken = tokenPrim show updatePos get_token where
   get_token (Break p) = Just (Break p)
   get_token _      = Nothing
+
+castingBoolToken :: ParsecT [Token] u IO Token
+castingBoolToken = tokenPrim show updatePos get_token where
+  get_token (CastingBool p) = Just (CastingBool p)
+  get_token _      = Nothing
+  
+castingIntToken :: ParsecT [Token] u IO Token
+castingIntToken = tokenPrim show updatePos get_token where
+  get_token (CastingInt p) = Just (CastingBool p)
+  get_token _      = Nothing
+
+castingRealToken :: ParsecT [Token] u IO Token
+castingRealToken = tokenPrim show updatePos get_token where
+  get_token (CastingReal p) = Just (CastingReal p)
+  get_token _      = Nothing
+
+castingCharToken :: ParsecT [Token] u IO Token
+castingCharToken = tokenPrim show updatePos get_token where
+  get_token (CastingChar p) = Just (CastingChar p)
+  get_token _      = Nothing
+
+castingStringToken :: ParsecT [Token] u IO Token
+castingStringToken = tokenPrim show updatePos get_token where
+  get_token (CastingString p) = Just (CastingString p)
+  get_token _      = Nothing

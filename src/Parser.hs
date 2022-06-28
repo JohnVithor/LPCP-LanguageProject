@@ -22,19 +22,20 @@ globalVars = try (do
         e <- semiColonToken
         return d) <|> return []
 
-declaration :: ParsecT [Token] MyState IO Type
+declaration :: ParsecT [Token] MyState IO [Type]
 declaration = do
         a <- beginScopeToken
-        try structDeclaration <|> try functionCreation <|> subprogramCreation Nothing
+        try structDeclaration <|> mainFunction
+        --  <|> try functionCreation <|> subprogramCreation Nothing
 
 declarations :: ParsecT [Token] MyState IO [Type]
 declarations = (do
                 c <- declaration
                 e <- declarations
-                return (c:e))
+                return (c++e))
                 <|> return []
 
-structDeclaration :: ParsecT [Token] MyState IO Type
+structDeclaration :: ParsecT [Token] MyState IO [Type]
 structDeclaration = do
             b <- structToken
             c <- idToken
@@ -47,7 +48,7 @@ structDeclaration = do
                 do
                 h <- semiColonToken
                 updateState(typeTableInsert (Type.Struct (getIdData c) e))
-                return (Type.Bool False)
+                return [Type.Bool False]
 
 fieldCreations :: ParsecT [Token] MyState IO [(String, Type)]
 fieldCreations = (do
@@ -67,12 +68,12 @@ fieldCreation = do
 initialization :: Type -> ParsecT [Token] MyState IO Type
 initialization t = try (do
         c <- assignToken
-        d <- intToken <|> stringToken <|> charToken <|> realToken <|> boolToken
-        e <- semiColonToken
+        d <- expr
+        -- e <- semiColonToken
         if compatible t d then return d else fail "tipos diferentes")
         <|>
         (do
-        e <- semiColonToken
+        -- e <- semiColonToken
         return t)
 
 dataType :: ParsecT [Token] MyState IO Type
@@ -103,7 +104,7 @@ stringConcatExpression = do
 stringExpression :: ParsecT [Token] MyState IO Type
 stringExpression = stringToken
                <|> charToken
-            --    <|> idToken
+               <|> idGetVal
                <|> stringConcatExpression
 
 --parser para declaração de constante int
@@ -132,25 +133,25 @@ varCreation = do
             if not (compatible a c) then fail "tipos diferentes" else
                 do
                 updateState(symtableInsert (getIdData b, c))
-                return (Type.Bool False) -- O ideal seria não retornar nada.
+                return c -- O ideal seria não retornar nada.
 
 varCreations :: ParsecT [Token] MyState IO [Type]
 varCreations = (do
-                    c <- try varCreation <|> constantDecl
+                    c <- varCreation -- <|> constantDecl
                     e <- varCreations
                     return (c:e))
                     <|> return []
 
 --a = 10;
-varAssignment :: ParsecT [Token] MyState IO Type
+varAssignment :: ParsecT [Token] MyState IO [Type]
 varAssignment = do
             a <- idToken
             b <- assignToken
-            c <- intToken <|> stringToken <|> charToken <|> realToken <|> boolToken
+            c <- expression
             d <- semiColonToken
             -- TODO: validar o tipo (gramática de atributos)
             updateState(symtableUpdate (getIdData a, c))
-            return (Type.Bool False) -- O ideal seria não retornar nada.
+            return [Type.Bool False] -- O ideal seria não retornar nada.
 
 functionCreation :: ParsecT [Token] MyState IO Type
 functionCreation = do
@@ -163,11 +164,11 @@ subprogramCreation ret = do
         d <- beginExpressionToken
         e <- params
         f <- endExpressionToken
-        g <- colonToken
-        -- h <- statements
-        i <- endScopeToken
-        j <- idToken
-        l <- semiColonToken
+        g <- colonToken 
+        h <- statements
+        i <- endScopeToken 
+        j <- idToken 
+        l <- semiColonToken 
         if getIdData c /= getIdData j then fail "Nome do subprograma não é o mesmo"
         else
                 do
@@ -195,29 +196,33 @@ refParam = do
         b <- idToken
         return (getIdData b, a)
 
-returnCall :: ParsecT [Token] MyState IO Type
+returnCall :: ParsecT [Token] MyState IO [Type]
 returnCall = do
         -- TODO: pensar em como voltar para o lugar que chamou a função e devolver esse valor
         a <- returnToken
-        return (Type.Bool True)
+        a <- expression
+        return [Type.Bool True]
         -- expression
 
-destroyCall :: ParsecT [Token] MyState IO Type
+destroyCall :: ParsecT [Token] MyState IO [Type]
 destroyCall = do
         a <- destroyToken
         b <- idToken
         -- remover id da heap
-        return (Type.Bool True)
+        return [Type.Bool True]
 
 statements :: ParsecT [Token] MyState IO [Type]
 statements = (do
-        c <- try statement
+        c <- statement
+        d <- semiColonToken 
         e <- statements
-        return (c:e))
+        -- s <- getState
+        -- liftIO (print s)
+        return (c++e))
         <|> return []
 
-statement :: ParsecT [Token] MyState IO Type
-statement = try varCreation
+statement :: ParsecT [Token] MyState IO [Type]
+statement = try varCreations
         <|> try varAssignment
         -- <|> try conditional
         -- <|> try loop
@@ -265,13 +270,55 @@ fator = intToken <|> realToken <|> (do
         c <- endExpressionToken 
         return b)
 
-program :: ParsecT [Token] MyState IO Type
-program = do
-        --     a <- globalVars
-        --     b <- declarations
-        c <- expr
-        eof
-        return c
+idGetVal :: ParsecT [Token] MyState IO Type
+idGetVal = do 
+        a <- idToken
+        s <- getState
+        return (symtableGet (getIdData a) s)
+        
 
-parser :: [Token] -> IO (Either ParseError Type)
+expression :: ParsecT [Token] MyState IO Type
+expression = literal <|> idGetVal <|> (do
+        a <- casting
+        b <- expression
+        return (cast a b)
+        ) <|> stringExpression
+
+casting :: ParsecT [Token] MyState IO Token
+casting = castingBoolToken <|> castingIntToken <|> castingRealToken <|> castingCharToken <|> castingStringToken
+
+literal :: ParsecT [Token] MyState IO Type
+literal = boolToken <|> intToken<|> realToken <|> charToken <|> stringToken
+
+mainFunction :: ParsecT [Token] MyState IO [Type]
+mainFunction = do
+        b <- typeToken
+        c <- idToken 
+        d <- beginExpressionToken
+        e <- params
+        f <- endExpressionToken
+        g <- colonToken 
+        h <- statements
+        i <- endScopeToken 
+        j <- idToken 
+        l <- semiColonToken 
+        if getIdData c /= getIdData j && getIdData c /= "main" then fail "Nome do subprograma não é o mesmo"
+        else
+                do 
+                -- TODO: atualizar a lista de comandos !!!
+                updateState(subsprogramTableInsert (getIdData c, Just (Type.Int 0), e, [c]))
+                return h
+
+program :: ParsecT [Token] MyState IO [Type]
+program = do
+        -- a <- globalVars
+        b <- declarations
+        -- c <- expr
+        eof
+        -- return c
+        s <- getState 
+        return b
+        -- return (runFunc (getMainFunc s) [])
+
+parser :: [Token] -> IO (Either ParseError [Type])
 parser = runParserT program ([], [], []) "Error message"
