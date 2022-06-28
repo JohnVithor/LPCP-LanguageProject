@@ -31,4 +31,6 @@ eval _ _ _ = error "deu ruim"
 
 evalUni :: Token -> Type -> Type
 evalUni (Not _ ) (Type.Bool y) = Type.Bool (not y)
+evalUni (Minus _ ) (Type.Int y) = Type.Int (-y)
+evalUni (Minus _ ) (Type.Real y) = Type.Real (-y)
 evalUni _ _ = error "deu ruim"

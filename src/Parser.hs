@@ -112,13 +112,13 @@ constantDecl :: ParsecT [Token] MyState IO Type
 constantDecl = do
             const <- constantToken
             -- TODO: usar essa informação sobre ser constante
-            a <- typeToken 
+            a <- typeToken
             b <- idToken
             c <- assignToken
             d <- intToken <|> stringToken <|> charToken <|> realToken <|> boolToken
             e <- semiColonToken
-            s <- getState 
-            if not (compatible (typeTableGet a s) d) then fail "tipos diferentes" else 
+            s <- getState
+            if not (compatible (typeTableGet a s) d) then fail "tipos diferentes" else
                 do
                 updateState(symtableInsert (getIdData b, d))
                 return (Type.Bool False) -- O ideal seria não retornar nada.
@@ -129,7 +129,7 @@ varCreation = do
             s <- getState
             b <- idToken
             c <- initialization a
-            if not (compatible a c) then fail "tipos diferentes" else 
+            if not (compatible a c) then fail "tipos diferentes" else
                 do
                 updateState(symtableInsert (getIdData b, c))
                 return (Type.Bool False) -- O ideal seria não retornar nada.
@@ -159,18 +159,18 @@ functionCreation = do
 
 subprogramCreation :: Maybe Type -> ParsecT [Token] MyState IO Type
 subprogramCreation ret = do
-        c <- idToken 
+        c <- idToken
         d <- beginExpressionToken
         e <- params
         f <- endExpressionToken
-        g <- colonToken 
+        g <- colonToken
         -- h <- statements
-        i <- endScopeToken 
-        j <- idToken 
-        l <- semiColonToken 
+        i <- endScopeToken
+        j <- idToken
+        l <- semiColonToken
         if getIdData c /= getIdData j then fail "Nome do subprograma não é o mesmo"
         else
-                do 
+                do
                 -- TODO: atualizar a lista de comandos !!!
                 updateState(subsprogramTableInsert (getIdData c, ret, e, [c]))
                 return (Type.Bool False)
@@ -183,16 +183,16 @@ params = (do
         <|> return []
 
 param :: ParsecT [Token] MyState IO (String, Type)
-param = do 
+param = do
         a <- dataType
-        b <- idToken 
+        b <- idToken
         return (getIdData b, a)
 
 refParam :: ParsecT [Token] MyState IO (String, Type)
-refParam = do 
+refParam = do
         ref <- refToken
         a <- dataType
-        b <- idToken 
+        b <- idToken
         return (getIdData b, a)
 
 returnCall :: ParsecT [Token] MyState IO Type
@@ -205,7 +205,7 @@ returnCall = do
 destroyCall :: ParsecT [Token] MyState IO Type
 destroyCall = do
         a <- destroyToken
-        b <- idToken 
+        b <- idToken
         -- remover id da heap
         return (Type.Bool True)
 
@@ -227,13 +227,51 @@ statement = try varCreation
         -- <|> try continueToken
         -- <|> breakToken
 
+negativeNumber :: ParsecT [Token] MyState IO Type
+negativeNumber = do
+        a <- minusToken
+        b <- beginExpressionToken
+        c <- numericExpression
+        d <- endExpressionToken
+        return (evalUni a c)
+
+numericExpression :: ParsecT [Token] MyState IO Type
+numericExpression = do
+        a <- intToken
+        b <- plusToken
+        c <- realToken
+        return (eval a b c)
+
+expr :: ParsecT [Token] MyState IO Type
+expr = try (do
+        n1 <- term
+        op <- plusToken <|> minusToken
+        n2 <- expr
+        return (eval n1 op n2)) 
+        <|> term
+
+term :: ParsecT [Token] MyState IO Type
+term = try (do
+        n1 <- fator
+        op <- multToken <|> divToken <|> modToken
+        n2 <- term
+        return (eval n1 op n2)) 
+        <|> fator
+
+fator :: ParsecT [Token] MyState IO Type
+fator = intToken <|> realToken <|> (do
+        a <- beginExpressionToken 
+        b <- expr
+        c <- endExpressionToken 
+        return b)
 
 program :: ParsecT [Token] MyState IO Type
 program = do
-            a <- globalVars
-            b <- declarations
-            eof
-            return (Type.Bool False)
+        --     a <- globalVars
+        --     b <- declarations
+        c <- expr
+        eof
+        return c
 
 parser :: [Token] -> IO (Either ParseError Type)
 parser = runParserT program ([], [], []) "Error message"

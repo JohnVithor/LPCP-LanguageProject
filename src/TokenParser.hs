@@ -112,6 +112,26 @@ plusToken = tokenPrim show updatePos get_token where
   get_token (Plus p) = Just (Plus p)
   get_token _      = Nothing
 
+minusToken :: ParsecT [Token] u IO Token
+minusToken = tokenPrim show updatePos get_token where
+  get_token (Minus p) = Just (Minus p)
+  get_token _      = Nothing
+
+multToken :: ParsecT [Token] u IO Token
+multToken = tokenPrim show updatePos get_token where
+  get_token (Mult p) = Just (Mult p)
+  get_token _      = Nothing
+
+divToken :: ParsecT [Token] u IO Token
+divToken = tokenPrim show updatePos get_token where
+  get_token (Div p) = Just (Div p)
+  get_token _      = Nothing
+
+modToken :: ParsecT [Token] u IO Token
+modToken = tokenPrim show updatePos get_token where
+  get_token (Mod p) = Just (Mod p)
+  get_token _      = Nothing
+
 orToken :: ParsecT [Token] u IO Token
 orToken = tokenPrim show updatePos get_token where
   get_token (Or p) = Just (Or p)
