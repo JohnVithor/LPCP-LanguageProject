@@ -11,7 +11,7 @@ import Type
 
 
 -- begin repeat : stmts until (logicExpression) end repeat
-repeatUntilLoop :: ParsecT [Token] u IO Type
+repeatUntilLoop :: ParsecT [Token] u IO [Token]
 repeatUntilLoop = do
                   a <- beginScopeToken
                   b <- repeatToken
@@ -23,7 +23,12 @@ repeatUntilLoop = do
                   h <- closeParenthesesToken
                   i <- endScopeToken
                   j <- repeatToken
-                  return (a:b:c:d:e:f:g:h:i:[j])
+                  if exemode the
+                    if eval (g op a)
+                        eval d
+                    return (a:b:c:d:e:f:g:h:i:[j])
+                  else 
+                    return (a:b:c:d:e:f:g:h:i:[j])
 
 
 -- begin while(logicExpression): stmts end while
@@ -35,7 +40,10 @@ whileLoop = do
               d <- logicExpressionToken    -- CHANGE
               e <- closeParenthesesToken
               f <- colonToken
-              g <- stmts
+              if execMode then
+                g <- stmts
+              else
+                
               h <- endScopeToken
               i <- whileToken
               return (a:b:c:d:e:f:g:h:[i])
