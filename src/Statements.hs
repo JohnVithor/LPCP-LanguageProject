@@ -51,12 +51,14 @@ varAssignment x = do
                 a <- idToken
                 b <- assignToken
                 (c, v) <- expression x
+                s <- getState
                 d <- semiColonToken
-                -- TODO: validar o tipo (gramática de atributos)
                 if x then
-                        do
-                        updateState(symtableUpdate (getIdData a, fromJust v))
-                        return ([a]++[b]++c++[d])
+                        if  (compatible symtableGet((getIdData a) s) v) then 
+                                do
+                                updateState(symtableUpdate (getIdData a, fromJust v))
+                                return ([a]++[b]++c++[d])    
+                        else fail "tipos diferentes"
                 else return ([a]++[b]++c++[d])
 
 returnCall :: Bool -> ParsecT [Token] MyState IO ([Token],Type)
@@ -64,33 +66,33 @@ returnCall x = do
         -- TODO: pensar em como voltar para o lugar que chamou a função e devolver esse valor
         a <- returnToken
         b <- expression x
-        return [Type.Bool True]
+        return [b]
         -- expression
 
-destroyCall :: ParsecT [Token] MyState IO [Type]
-destroyCall = do
+destroyCall :: Bool -> ParsecT [Token] MyState IO [Token]
+destroyCall x = do
         a <- destroyToken
         b <- idToken
-        -- remover id da heap
-        return [Type.Bool True]
+        -- TODO: remover id da heap
+        return a:[b]
 
-statements :: ParsecT [Token] MyState IO [Type]
-statements = (do
-        c <- statement
+statements :: Bool -> ParsecT [Token] MyState IO [Token]
+statements x = (do
+        c <- statement x
         d <- semiColonToken
-        e <- statements
+        e <- statements x
         -- s <- getState
         -- liftIO (print s)
-        return (c++e))
+        return (c++[d]++e))
         <|> return []
 
-statement :: ParsecT [Token] MyState IO [Type]
-statement = try varCreations
+statement :: Bool -> ParsecT [Token] MyState IO [Token]
+statement x = try varCreations
         <|> try varAssignment
-        -- <|> try conditional
-        -- <|> try loop
-        -- <|> try procedureCall
-        -- <|> try returnCall
-        -- <|> try destroyCall
-        -- <|> try continueToken
-        -- <|> breakToken
+        -- <|> try conditional x
+        -- <|> try loop x
+        -- <|> try procedureCall x
+        -- <|> try returnCall x
+        -- <|> try destroyCall x
+        -- <|> try continueToken x
+        -- <|> breakToken x
