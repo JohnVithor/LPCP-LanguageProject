@@ -13,6 +13,8 @@ import Data.Maybe
 import GHC.Exception (fromCallSiteList)
 import Expressions
 import Statements
+import Declarations
+import Subprograms
 
 globalVars :: ParsecT [Token] MyState IO [Token]
 globalVars = try (do
@@ -31,6 +33,19 @@ globalVarCreations = try (do
                 b <- semiColonToken 
                 c <- globalVarCreations
                 return (a++b:c))
+                <|> return []
+
+declaration :: ParsecT [Token] MyState IO [Token]
+declaration = do
+        a <- beginScopeToken
+        try structDeclaration <|> mainFunction
+        --  <|> try functionCreation <|> subprogramCreation Nothing
+
+declarations :: ParsecT [Token] MyState IO [Token]
+declarations = (do
+                c <- declaration
+                e <- declarations
+                return (c++e))
                 <|> return []
 
 -- -- concatenação de strings "string 1" + " string 2"
@@ -81,30 +96,30 @@ globalVarCreations = try (do
 literal :: ParsecT [Token] MyState IO (Token,Type)
 literal = intToken<|> realToken <|> charToken <|> stringToken <|> boolToken
 
--- mainFunction :: ParsecT [Token] MyState IO [Type]
--- mainFunction = do
---         b <- typeToken
---         c <- idToken
---         d <- beginExpressionToken
---         e <- params
---         f <- endExpressionToken
---         g <- colonToken
---         h <- statements
---         i <- endScopeToken
---         j <- idToken
---         l <- semiColonToken
---         if getIdData c /= getIdData j then fail "Nome do subprograma não é o mesmo"
---         else
---                 if getIdData c /= "main" then fail "função main não encontrada" else
---                 do
---                 -- TODO: atualizar a lista de comandos !!!
---                 updateState(subsprogramTableInsert (getIdData c, Just (Type.Int 0), e, [c]))
---                 return h
+mainFunction :: ParsecT [Token] MyState IO [Token]
+mainFunction = do
+        b <- typeToken
+        c <- idToken
+        d <- beginExpressionToken
+        e <- params
+        f <- endExpressionToken
+        g <- colonToken
+        h <- statements True
+        i <- endScopeToken
+        j <- idToken
+        l <- semiColonToken
+        if getIdData c /= getIdData j then fail "Nome do subprograma não é o mesmo"
+        else
+                if getIdData c /= "main" then fail "função main não encontrada" else
+                do
+                -- TODO: atualizar a lista de comandos !!!
+                updateState(subsprogramTableInsert (getIdData c, Just (Type.Int 0), e, [c]))
+                return h
 
 program :: ParsecT [Token] MyState IO [Token]
 program = do
         a <- globalVars
-        b <- statements True
+        b <- declarations
         eof
         s <- getState
         liftIO (print s)

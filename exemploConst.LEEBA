@@ -1,7 +1,9 @@
 begin global:
-real a = 8.0;
-real aa = 2.0;
+    real a = 8.0;
+    real aa = 2.0;
 end global;
 
-real f = a*a;
-real c = f + 1;
+begin int main():
+    real f = a*a;
+    real c = f + 1;
+end main;

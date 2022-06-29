@@ -8,21 +8,7 @@ import SymTable
 import TokenParser
 import Eval
 
-declaration :: ParsecT [Token] MyState IO [Type]
-declaration = do
-        a <- beginScopeToken
-        try structDeclaration
-        --  <|> mainFunction
-        --  <|> try functionCreation <|> subprogramCreation Nothing
-
-declarations :: ParsecT [Token] MyState IO [Type]
-declarations = (do
-                c <- declaration
-                e <- declarations
-                return (c++e))
-                <|> return []
-
-structDeclaration :: ParsecT [Token] MyState IO [Type]
+structDeclaration :: ParsecT [Token] MyState IO [Token]
 structDeclaration = do
             b <- structToken
             c <- idToken
@@ -36,7 +22,7 @@ structDeclaration = do
                 do
                 h <- semiColonToken
                 updateState(typeTableInsert (Type.Struct (getIdData c) fields))
-                return [Type.Struct (getIdData c) fields]
+                return (f:[g])
 
 fieldCreations :: ParsecT [Token] MyState IO ([Token],[(String, Type)])
 fieldCreations = (do
