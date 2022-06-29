@@ -66,26 +66,9 @@ import Expressions
 --         --     (c, v) <- initialization a
 --             return (a++[b],(getIdData b, t))
 
-initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-initialization x t = try (do
-        c <- assignToken
-        (d, r) <- expression x
-        -- e <- semiColonToken
-        if x then
-                if compatible t (fromJust r) then return (c:d, r)
-                else fail "tipos diferentes"
-        else return (c:d, r))
-        <|>
-        (do
-        -- e <- semiColonToken
-        return ([],Just t))
 
-dataType :: ParsecT [Token] MyState IO ([Token],Type)
-dataType = do
-        s <- getState
-        t <- typeToken <|> idToken
-        -- (r, v) <- listType (typeTableGet t s)
-        return ([t], typeTableGet t s)
+
+
 
 -- listType :: Type -> ParsecT [Token] MyState IO ([Token],Type)
 -- listType t = try (do

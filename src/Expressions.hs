@@ -8,9 +8,13 @@ import SymTable
 import TokenParser
 import Eval
 
+--TODO: campos de structs, acesso a array, chamada de função, casting 
+
+-- Parser geral de expressões
 expression :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 expression x = try (numExpr x) <|> logExpr x
 
+-- Parser inicial para expressões numéricas (soma e subtração)
 numExpr :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 numExpr x = try (do
         (t1, n1) <- numTerm x
@@ -20,6 +24,7 @@ numExpr x = try (do
         else return (t1 ++ [op] ++ t2, Nothing))
         <|> numTerm x
 
+-- Parser secundário para expressões numéricas (multiplicação, divisão e módulo)
 numTerm :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 numTerm x = try (do
         (t1, n1) <- numFactor x
@@ -29,6 +34,7 @@ numTerm x = try (do
         else return (t1 ++ [op] ++ t2, Nothing))
         <|> numFactor x
 
+-- Parser final para expressões numéricas (literais, variáveis, parênteses, etc)
 numFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 numFactor x = try (do
                 (tk,tp) <- intToken<|> realToken
@@ -46,7 +52,7 @@ numFactor x = try (do
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
                 )
-
+-- Parser inicial para expressões lógicas (OR)
 logExpr :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 logExpr x = try (do
         (t1, n1) <- logTerm1 x
@@ -56,6 +62,7 @@ logExpr x = try (do
         else return (t1 ++ [op] ++ t2, Nothing))
         <|> logTerm1 x
 
+-- Parser secundário para expressões lógicas (AND)
 logTerm1 :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 logTerm1 x = try (do
         (t1, n1) <- logTerm2 x
@@ -65,6 +72,7 @@ logTerm1 x = try (do
         else return (t1 ++ [op] ++ t2, Nothing))
         <|> logTerm2 x
 
+-- Parser ternário para expressões lógicas (NOT)
 logTerm2 :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 logTerm2 x = try (do
         op <- notToken 
@@ -73,6 +81,7 @@ logTerm2 x = try (do
         else return (op : t1, Nothing))
         <|> logFactor x
 
+-- Parser final para expressões lógicas (booleano, variáveis, parênteses, etc)
 logFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 logFactor x =   try (do
                 (tk,tp) <- boolToken
@@ -90,3 +99,6 @@ logFactor x =   try (do
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
                 )
+                -- IN
+                -- IS
+                -- COMPARAÇÕES
