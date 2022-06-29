@@ -24,7 +24,7 @@ extra-source-files:
     README.md
 
 library
-    exposed-modules: Lexer, Parser, Eval, SymTable, TokenParser, Type
+    exposed-modules: Lexer, Parser, Eval, SymTable, TokenParser, Type, Expressions
 
     -- Modules included in this library but not exported.
     -- other-modules:

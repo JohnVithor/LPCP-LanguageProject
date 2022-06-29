@@ -10,7 +10,8 @@ import TokenParser
 import SymTable
 import Type
 import Data.Maybe
-
+import GHC.Exception (fromCallSiteList)
+import Expressions
 -- globalVars :: ParsecT [Token] MyState IO [Type]
 -- globalVars = try (do
 --         a <- beginScopeToken
@@ -68,9 +69,9 @@ import Data.Maybe
 initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 initialization x t = try (do
         c <- assignToken
-        (d, r) <- expr x
+        (d, r) <- expression x
         -- e <- semiColonToken
-        if x then 
+        if x then
                 if compatible t (fromJust r) then return (c:d, r)
                 else fail "tipos diferentes"
         else return (c:d, r))
@@ -134,8 +135,8 @@ varCreation x = do
             (a, t) <- dataType
             b <- idToken
             (c, r) <- initialization x t
-            if not (compatible t (fromJust r)) then fail "tipos diferentes" else
-                if x then
+            if x then
+                if not (compatible t (fromJust r)) then fail "tipos diferentes" else
                         do
                         s <- getState
                         updateState(symtableInsert (getIdData b, fromJust r))
@@ -155,11 +156,11 @@ varAssignment :: Bool -> ParsecT [Token] MyState IO [Token]
 varAssignment x = do
                 a <- idToken
                 b <- assignToken
-                (c, v) <- expr x
+                (c, v) <- expression x
                 d <- semiColonToken
                 -- TODO: validar o tipo (gramática de atributos)
-                if x then 
-                        do 
+                if x then
+                        do
                         updateState(symtableUpdate (getIdData a, fromJust v))
                         return ([a]++[b]++c++[d])
                 else return ([a]++[b]++c++[d])
@@ -243,53 +244,13 @@ varAssignment x = do
 --         -- <|> try continueToken
 --         -- <|> breakToken
 
-expr :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
-expr x = try (do
-        (t1, n1) <- term x
-        op <- plusToken <|> minusToken
-        (t2, n2) <- expr x
-        if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
-        else return (t1 ++ [op] ++ t2, Nothing))
-        <|> term x
-
-term :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
-term x = try (do
-        (t1, n1) <- fator x
-        op <- multToken <|> divToken <|> modToken
-        (t2, n2) <- term x
-        if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
-        else return (t1 ++ [op] ++ t2, Nothing))
-        <|> fator x
-
-fator :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
-fator x
-        | x = (do
-                t <- intToken
-                return ([t], Just (toType t)))
-                <|>
-                (do
-                t <- realToken
-                return ([t], Just (toType t)))
-        | otherwise = (do
-                t <- intToken
-                return ([t], Nothing))
-                <|>
-                (do
-                t <- realToken
-                return ([t], Nothing))
-
--- idGetVal :: ParsecT [Token] MyState IO Type
--- idGetVal = do
---         a <- idToken
---         s <- getState
---         return (symtableGet (getIdData a) s)
 
 
 -- casting :: ParsecT [Token] MyState IO Token
 -- casting = castingBoolToken <|> castingIntToken <|> castingRealToken <|> castingCharToken <|> castingStringToken
 
--- literal :: ParsecT [Token] MyState IO Token
--- literal = boolToken <|> intToken<|> realToken <|> charToken <|> stringToken
+literal :: ParsecT [Token] MyState IO (Token,Type)
+literal = intToken<|> realToken <|> charToken <|> stringToken <|> boolToken
 
 -- mainFunction :: ParsecT [Token] MyState IO [Type]
 -- mainFunction = do
@@ -315,6 +276,7 @@ program :: ParsecT [Token] MyState IO [Token]
 program = do
         -- a <- globalVars
         b <- varCreation True
+        -- c <- varCreation True 
         -- c <- expr
         eof
         -- return c

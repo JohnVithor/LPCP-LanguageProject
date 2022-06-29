@@ -23,8 +23,3 @@ compatible (Type.String _) (Type.String _) = True
 compatible (Type.Char _) (Type.Char _) = True
 compatible (Type.Bool _) (Type.Bool _) = True
 compatible _ _ = False
-
-toType :: Token -> Type
-toType (Lexer.Int p v) = Type.Int v
-toType (Lexer.Real p v) = Type.Real v
-toType _ = error "error não é tipo primitivo"
