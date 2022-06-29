@@ -57,29 +57,29 @@ endListConstToken = tokenPrim show updatePos get_token where
   get_token (EndListConst p) = Just (EndListConst p)
   get_token _          = Nothing
 
-intToken :: ParsecT [Token] u IO Type
+intToken :: ParsecT [Token] u IO (Token, Type)
 intToken = tokenPrim show updatePos get_token where
-  get_token (Lexer.Int p x) = Just (Type.Int x)
+  get_token (Lexer.Int p x) = Just (Lexer.Int p x, Type.Int x)
   get_token _       = Nothing
 
-stringToken :: ParsecT [Token] u IO Type
+stringToken :: ParsecT [Token] u IO (Token, Type)
 stringToken = tokenPrim show updatePos get_token where
-  get_token (Lexer.String p x) = Just (Type.String x)
+  get_token (Lexer.String p x) = Just (Lexer.String p x, Type.String x)
   get_token _       = Nothing
 
-realToken :: ParsecT [Token] u IO Type
+realToken :: ParsecT [Token] u IO (Token, Type)
 realToken = tokenPrim show updatePos get_token where
-  get_token (Lexer.Real p x) = Just (Type.Real x)
+  get_token (Lexer.Real p x) = Just (Lexer.Real p x,Type.Real x)
   get_token _       = Nothing
 
-charToken :: ParsecT [Token] u IO Type
+charToken :: ParsecT [Token] u IO (Token, Type)
 charToken = tokenPrim show updatePos get_token where
-  get_token (Lexer.Char p x) = Just (Type.Char x)
+  get_token (Lexer.Char p x) = Just (Lexer.Char p x, Type.Char x)
   get_token _       = Nothing
 
-boolToken :: ParsecT [Token] u IO Type
+boolToken :: ParsecT [Token] u IO (Token, Type)
 boolToken = tokenPrim show updatePos get_token where
-  get_token (Lexer.Bool p x) = Just (Type.Bool x)
+  get_token (Lexer.Bool p x) = Just (Lexer.Bool p x, Type.Bool x)
   get_token _       = Nothing
 
 constantToken :: ParsecT [Token] u IO Token

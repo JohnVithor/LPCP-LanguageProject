@@ -32,6 +32,7 @@ typeTableGet (Type _ name) (_, tbl, _)
 typeTableGet (Id _ name) (_, tbl, _) = getUserDefinedType name tbl
 typeTableGet _ _ = error "Not a type token"
 
+
 getUserDefinedType :: String -> [Type] -> Type
 getUserDefinedType name [] = error "Type not Found"
 getUserDefinedType name (t:tbl)

@@ -1,5 +1,7 @@
 module Type where
 
+import Lexer
+
 data Type = Bool Bool        | 
             Int Int          |
             Real Double      | 
@@ -11,7 +13,7 @@ data Type = Bool Bool        |
 
 
 getStructName :: Type -> String
-getStructName (Struct name _) = name
+getStructName (Type.Struct name _) = name
 getStructName _ = error "Not a Struct"
 
 compatible :: Type -> Type -> Bool
