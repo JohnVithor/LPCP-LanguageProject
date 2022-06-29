@@ -7,7 +7,7 @@ import Control.Monad.IO.Class
 import SymTable
 import TokenParser
 import Eval
-import DataType
+import Declarations
 import Expressions
 
 
@@ -54,19 +54,19 @@ varAssignment x = do
                 s <- getState
                 d <- semiColonToken
                 if x then
-                        if  (compatible symtableGet((getIdData a) s) v) then 
+                        if compatible (symtableGet (getIdData a) s) (fromJust v) then
                                 do
                                 updateState(symtableUpdate (getIdData a, fromJust v))
-                                return ([a]++[b]++c++[d])    
+                                return ([a]++[b]++c++[d])
                         else fail "tipos diferentes"
                 else return ([a]++[b]++c++[d])
 
-returnCall :: Bool -> ParsecT [Token] MyState IO ([Token],Type)
+returnCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 returnCall x = do
         -- TODO: pensar em como voltar para o lugar que chamou a função e devolver esse valor
         a <- returnToken
-        b <- expression x
-        return [b]
+        (tk, tp) <- expression x
+        return (a:tk,tp)
         -- expression
 
 destroyCall :: Bool -> ParsecT [Token] MyState IO [Token]
@@ -74,7 +74,7 @@ destroyCall x = do
         a <- destroyToken
         b <- idToken
         -- TODO: remover id da heap
-        return a:[b]
+        return (a : [b])
 
 statements :: Bool -> ParsecT [Token] MyState IO [Token]
 statements x = (do
@@ -87,12 +87,12 @@ statements x = (do
         <|> return []
 
 statement :: Bool -> ParsecT [Token] MyState IO [Token]
-statement x = try varCreations
-        <|> try varAssignment
-        -- <|> try conditional x
-        -- <|> try loop x
-        -- <|> try procedureCall x
-        -- <|> try returnCall x
-        -- <|> try destroyCall x
-        -- <|> try continueToken x
+statement x = try (varCreations x)
+        <|> try (varAssignment x)
+        -- <|> try (conditional x)
+        -- <|> try (loop x)
+        -- <|> try (procedureCall x)
+        -- <|> try (returnCall x)
+        -- <|> try (destroyCall x)
+        -- <|> try (continueToken x)
         -- <|> breakToken x
