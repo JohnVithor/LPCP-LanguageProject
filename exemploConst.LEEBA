@@ -1,15 +1,5 @@
-begin global:
-    real a = 8.0;
-    real aa = 2.0;
-    bool c = (aa <= a);
-    bool d = (aa == a);
-    bool e = (aa != a);
-    bool f = (aa >= a);
-    bool g = (aa < 40);
-    bool h = (aa > 20);
-end global;
 
 begin int main():
-    real f = a*a;
-    real c = f + 1;
+    int a = 1;
+    bool c = (a == a);
 end main;

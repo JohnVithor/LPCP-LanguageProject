@@ -101,11 +101,11 @@ Expressions
         | <expression> in var_id
 
 <comparison> := <expression> == <expression>
-                          | <expression> != <expression>
-                          | <numeric_expression> > <numeric_expression>
-                          | <numeric_expression> < <numeric_expression>
-                          | <numeric_expression> <= <numeric_expression>
-                          | <numeric_expression> >= <numeric_expression>
+        | <expression> != <expression>
+        | <numeric_expression> > <numeric_expression>
+        | <numeric_expression> < <numeric_expression>
+        | <numeric_expression> <= <numeric_expression>
+        | <numeric_expression> >= <numeric_expression>
 
 
 <string_expression> := string_literal 
