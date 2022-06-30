@@ -36,6 +36,7 @@ initStructInner (Type.Struct name trueParams) [] [] = Just (Type.Struct name tru
 initStructInner (Type.Struct name trueParams) (param:params) (arg:args) = initStructInner (Type.Struct name (replaceArg trueParams param arg)) params args
 initStructInner _ _ _ = fail "deu ruim caso de struct"
 
+-- TODO: verificar tipos do argumento e do parametro
 replaceArg :: [(String,Type)] -> (String,Type) -> Type -> [(String,Type)]
 replaceArg [] _ _ = fail "deu ruim: argumento não encontrado"
 replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedName == name then (name,value):trueArgs
@@ -43,18 +44,13 @@ replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedN
 
 args :: Bool -> ParsecT [Token] MyState IO [([Token], Maybe Type)]
 args x = try (do
-        a <- arg x
+        a <- expression x
         b <- commaToken
         c <- args x
         return (a:c))
         <|> do 
-                a <- arg x
-                return [a]
-
-arg :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-arg x = do
-        (tk, tp) <- expression x
-        return (tk, tp)
+        a <- expression x
+        return [a]
 
 initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 initialization x t = try (do
