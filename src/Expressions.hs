@@ -99,6 +99,64 @@ logFactor x =   try (do
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
                 )
+                <|> try (do 
+                (tk,tp) <- comparison x
+                s <- getState
+                if x then return (tk, tp)
+                else return (tk,Nothing)
+                )
+
                 -- IN
                 -- IS
                 -- COMPARAÇÕES
+
+
+        -- Os operadores '==' e '!=' podem trabalhar com strings
+                -- Utilizei apenas numExpr nos trys desses dois operadores
+                --Falta implementar stringExpr
+comparison :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+comparison x = try (do
+                (t1, n1) <- numExpr x
+                op <- lessOrEqualToken 
+                (t2, n2) <- numExpr x
+                if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
+                else return (t1 ++ [op] ++ t2, Nothing)
+                ) <|> 
+                try (do
+                (t1, n1) <- numExpr x
+                op <- greaterOrEqualToken 
+                (t2, n2) <- numExpr x
+                if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
+                else return (t1 ++ [op] ++ t2, Nothing)
+                ) <|> 
+                try (do
+                (t1, n1) <- numExpr x
+                op <- equalToken 
+                (t2, n2) <- numExpr x
+                if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
+                else return (t1 ++ [op] ++ t2, Nothing)
+                ) <|> 
+                try (do
+                (t1, n1) <- numExpr x
+                op <- notEqualToken 
+                (t2, n2) <- numExpr x
+                if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
+                else return (t1 ++ [op] ++ t2, Nothing)
+                ) <|> 
+                try (do
+                (t1, n1) <- numExpr x
+                op <- lessToken 
+                (t2, n2) <- numExpr x
+                if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
+                else return (t1 ++ [op] ++ t2, Nothing)
+                ) <|> 
+                try (do
+                (t1, n1) <- numExpr x
+                op <- greaterToken 
+                (t2, n2) <- numExpr x
+                if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
+                else return (t1 ++ [op] ++ t2, Nothing)
+                )
+        
+
+        
