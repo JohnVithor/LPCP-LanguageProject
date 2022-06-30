@@ -12,7 +12,7 @@ import Eval
 
 -- Parser geral de expressões
 expression :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
-expression x = try (numExpr x) <|> logExpr x
+expression x = try (numExpr x) <|> try (logExpr x) <|> stringExpr x
 
 -- Parser inicial para expressões numéricas (soma e subtração)
 numExpr :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
@@ -37,17 +37,17 @@ numTerm x = try (do
 -- Parser final para expressões numéricas (literais, variáveis, parênteses, etc)
 numFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 numFactor x = try (do
-                (tk,tp) <- intToken<|> realToken
+                (tk,tp) <- intToken <|> realToken
                 return ([tk], Just tp)
-                ) <|> try (do 
+                ) <|> try (do
                 a <- idToken
                 s <- getState
-                if x then return ([a], Just (symtableGet (getIdData a) s))
+                if x then return ([a], symtableGet (getIdData a) s)
                 else return ([a],Nothing)
-                ) <|> try (do 
-                a <- beginExpressionToken 
+                ) <|> (do
+                a <- beginExpressionToken
                 (tk,tp) <- numExpr x
-                c <- endExpressionToken 
+                c <- endExpressionToken
                 s <- getState
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
@@ -66,7 +66,7 @@ logExpr x = try (do
 logTerm1 :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 logTerm1 x = try (do
         (t1, n1) <- logTerm2 x
-        op <- andToken 
+        op <- andToken
         (t2, n2) <- logTerm1 x
         if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
         else return (t1 ++ [op] ++ t2, Nothing))
@@ -75,30 +75,74 @@ logTerm1 x = try (do
 -- Parser ternário para expressões lógicas (NOT)
 logTerm2 :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 logTerm2 x = try (do
-        op <- notToken 
+        op <- notToken
         (t1, n1) <- logFactor x
         if x then return (op : t1,Just (evalUni op (fromJust n1)))
         else return (op : t1, Nothing))
         <|> logFactor x
 
--- Parser final para expressões lógicas (booleano, variáveis, parênteses, etc)
+-- Parser final para expressões lógicas (booleano, variáveis, parênteses, etc) -
 logFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 logFactor x =   try (do
+                (tk,tp) <- comparison x
+                s <- getState
+                if x then return (tk, tp)
+                else return (tk,Nothing)
+                ) <|> try (do
                 (tk,tp) <- boolToken
                 return ([tk], Just tp)
-                ) <|> try (do 
-                a <- idToken
-                s <- getState
-                if x then return ([a], Just (symtableGet (getIdData a) s))
-                else return ([a],Nothing)
-                ) <|> try (do 
-                a <- beginExpressionToken 
+                ) <|> try (getVar x) <|> try (do
+                a <- beginExpressionToken
                 (tk,tp) <- logExpr x
-                c <- endExpressionToken 
+                c <- endExpressionToken
                 s <- getState
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
                 )
                 -- IN
                 -- IS
-                -- COMPARAÇÕES
+
+getVar :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+getVar x = do
+        a <- idToken
+        s <- getState
+        if x then return ([a], symtableGet (getIdData a) s)
+        else return ([a],Nothing)
+                
+
+-- Os operadores '==' e '!=' podem trabalhar com strings
+-- Utilizei apenas numExpr nos trys desses dois operadores
+--Falta implementar stringExpr
+comparison :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+comparison x = do
+                (t1, n1) <- numExpr x
+                op <- comparisonOp
+                (t2, n2) <- numExpr x
+                if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
+                else return (t1 ++ [op] ++ t2, Nothing)
+
+
+comparisonOp :: ParsecT [Token] MyState IO Token
+comparisonOp = equalToken
+                <|> notEqualToken
+                <|> lessOrEqualToken
+                <|> greaterOrEqualToken
+                <|> greaterToken
+                <|> lessToken
+
+stringExpr :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+stringExpr x = try (do
+        (t1, n1) <- stringFactor x
+        op <- plusToken
+        (t2, n2) <- stringExpr x
+        if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
+        else return (t1 ++ [op] ++ t2, Nothing))
+        <|> stringFactor x
+
+-- Expressão envolvendo strings ou chars ou id
+-- TODO: verificar o tipo de idToken
+stringFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+stringFactor x = try (do 
+                (tk, tp) <- stringToken <|> charToken
+                return ([tk], Just tp))
+               <|> getVar x

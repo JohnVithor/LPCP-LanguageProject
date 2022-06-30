@@ -47,6 +47,12 @@ colonToken = tokenPrim show updatePos get_token where
   get_token (Colon p) = Just (Colon p)
   get_token _          = Nothing
 
+commaToken :: ParsecT [Token] u IO Token
+commaToken = tokenPrim show updatePos get_token where
+  get_token (Comma p) = Just (Comma p)
+  get_token _          = Nothing
+
+
 beginListConstToken :: ParsecT [Token] u IO Token
 beginListConstToken = tokenPrim show updatePos get_token where
   get_token (BeginListConst p) = Just (BeginListConst p)

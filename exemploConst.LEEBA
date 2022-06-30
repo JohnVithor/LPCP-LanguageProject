@@ -1,9 +1,8 @@
-begin global:
-    real a = 8.0;
-    real aa = 2.0;
-end global;
+begin struct Pair:
+    string x;
+    int y;
+end Pair;
 
 begin int main():
-    real f = a*a;
-    real c = f + 1;
+    Pair a = Pair("jv",8);
 end main;
