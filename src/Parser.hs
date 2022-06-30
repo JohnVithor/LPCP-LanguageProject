@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use <$>" #-}
 module Parser where
 
 import Lexer
@@ -82,13 +80,6 @@ declarations = (do
 --                 return (Type.Bool False) -- O ideal seria não retornar nada.
 
 --a = 10;
-
-
-
-
-
-
-
 
 -- casting :: ParsecT [Token] MyState IO Token
 -- casting = castingBoolToken <|> castingIntToken <|> castingRealToken <|> castingCharToken <|> castingStringToken

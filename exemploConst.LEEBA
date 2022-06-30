@@ -1,5 +1,8 @@
+begin struct Pair:
+    string x;
+    int y;
+end Pair;
 
 begin int main():
-    int a = 1;
-    bool c = (a == a);
+    Pair a = Pair("jv",8);
 end main;

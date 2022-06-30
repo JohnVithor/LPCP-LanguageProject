@@ -48,14 +48,10 @@ getDefaultValue (Type p "bool") = Type.Bool True
 -- Todo incluir busca nos tipos de usuarios (structs) ?
 getDefaultValue _ = error "Is not a Type Token"
 
-symtableGet ::  String -> MyState -> Type
-symtableGet name (sym, _, _) = symtableGetInner name sym
-
-symtableGetInner :: String -> [(String,Type)] -> Type
-symtableGetInner _ [] = error "variable not found"
-symtableGetInner name ((id, value):t) =
-                               if name == id then value
-                               else symtableGetInner name t
+symtableGet :: String -> MyState -> Maybe Type
+symtableGet name ((id, value):t, a, b) = if name == id then Just value
+                             else symtableGet name (t, a, b)
+symtableGet _ ([], _, _) = fail "variable not found"
 
 symtableInsert :: (String,Type) -> MyState -> MyState
 symtableInsert symbol ([], t, subs)  = ([symbol], t, subs)

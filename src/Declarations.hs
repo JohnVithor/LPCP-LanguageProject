@@ -36,7 +36,8 @@ fieldCreation = do
             (a, t) <- dataType
             b <- idToken
         --     (c, v) <- initialization a
-            return (a++[b],(getIdData b, t))
+            c <- semiColonToken 
+            return (a++b:[c],(getIdData b, t))
 
 dataType :: ParsecT [Token] MyState IO ([Token],Type)
 dataType = do
