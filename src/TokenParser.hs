@@ -52,6 +52,15 @@ commaToken = tokenPrim show updatePos get_token where
   get_token (Comma p) = Just (Comma p)
   get_token _          = Nothing
 
+printToken :: ParsecT [Token] u IO Token
+printToken = tokenPrim show updatePos get_token where
+  get_token (Print p) = Just (Print p)
+  get_token _          = Nothing
+
+readToken :: ParsecT [Token] u IO Token
+readToken = tokenPrim show updatePos get_token where
+  get_token (Read p) = Just (Read p)
+  get_token _          = Nothing
 
 beginListConstToken :: ParsecT [Token] u IO Token
 beginListConstToken = tokenPrim show updatePos get_token where

@@ -28,6 +28,8 @@ tokens :-
   "break"                              { \p s -> Break p}
   "continue"                           { \p s -> Continue p}
   "return"                             { \p s -> Return p}
+  "print"                              { \p s -> Print p}
+  "read"                               { \p s -> Read p}
   "if"                                 { \p s -> If p}
   "else"                               { \p s -> Else p}
   "in"                                 { \p s -> In p}
@@ -99,6 +101,8 @@ data Token =
   Break               AlexPosn	|
   Continue            AlexPosn	|
   Return              AlexPosn	|
+  Print               AlexPosn	|
+  Read                AlexPosn	|
   If                  AlexPosn	|
   Else                AlexPosn	|
   In                  AlexPosn	|
@@ -157,6 +161,8 @@ token_posn (Until            p) = p
 token_posn (Break            p) = p
 token_posn (Continue         p) = p
 token_posn (Return           p) = p
+token_posn (Print            p) = p
+token_posn (Read             p) = p
 token_posn (If               p) = p
 token_posn (Else             p) = p
 token_posn (In               p) = p

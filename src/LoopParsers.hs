@@ -31,22 +31,7 @@ repeatUntilLoop = do
                     return (a:b:c:d:e:f:g:h:i:[j])
 
 
--- begin while(logicExpression): stmts end while
-whileLoop :: ParsecT [Token] u IO Type
-whileLoop = do
-              a <- beginScopeToken
-              b <- whileToken
-              c <- openParenthesesToken
-              d <- logicExpressionToken    -- CHANGE
-              e <- closeParenthesesToken
-              f <- colonToken
-              if execMode then
-                g <- stmts
-              else
-                
-              h <- endScopeToken
-              i <- whileToken
-              return (a:b:c:d:e:f:g:h:[i])
+
 
 
 -- begin foreach <data_type> var_id in var_id: <statements> end foreach

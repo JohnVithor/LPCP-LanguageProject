@@ -10,6 +10,9 @@ import Eval
 import Declarations
 import Expressions
 import Data.Data
+import GHC.IO.Unsafe (unsafePerformIO)
+import System.IO (isEOF)
+import GHC.IO.Handle (hIsEOF)
 
 structCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 structCreation x = do
@@ -61,7 +64,7 @@ args x = try (do
 initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 initialization x t = try (do
         c <- assignToken
-        (d, r) <- try (structCreation x) <|> expression x
+        (d, r) <- try (readStatement x) <|> try (structCreation x) <|> expression x
         if x then do
                 if compatible t (fromJust r) then return (c:d, r)
                 else fail "tipos diferentes"
@@ -74,7 +77,7 @@ varCreation :: Bool -> ParsecT [Token] MyState IO [Token]
 varCreation x = do
             (a, t) <- dataType
             b <- idToken
-            (c, r) <- initialization x t
+            (c, r) <- try (initialization x t)
             if x then
                 if not (compatible t (fromJust r)) then fail "tipos diferentes" else
                         do
@@ -96,28 +99,26 @@ varAssignment x = try (do
         a <- idToken
         b <- dotToken
         c <- idToken
-        d <- assignToken
-        (e, v) <- expression x
         s <- getState
+        (e, v) <- initialization x (fromJust (symtableGet (getIdData a) s))
         if x then
                 if compatible (getStructField (fromJust (symtableGet (getIdData a) s)) (getIdData c)) (fromJust v) then
                         do
                         updateState(symtableUpdate (getIdData a, fromJust (initStructInner (fromJust (symtableGet (getIdData a) s)) [(getIdData c,fromJust v)] [fromJust v] )))
-                        return (a:b:c:d:e)
+                        return (a:b:c:e)
                 else fail "tipos diferentes"
-        else return (a:b:c:d:e)
+        else return (a:b:c:e)
         ) <|> try (do
         a <- idToken
-        b <- assignToken
-        (c, v) <- expression x
         s <- getState
+        (c, v) <- initialization x (fromJust (symtableGet (getIdData a) s))
         if x then
                 if compatible (fromJust (symtableGet (getIdData a) s)) (fromJust v) then
                         do
                         updateState(symtableUpdate (getIdData a, fromJust v))
-                        return ([a]++[b]++c)
+                        return (a:c)
                 else fail "tipos diferentes"
-        else return ([a]++[b]++c)
+        else return (a:c)
         )
 
 returnCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
@@ -146,9 +147,11 @@ statements x = try (do
 statement :: Bool -> ParsecT [Token] MyState IO [Token]
 statement x = 
         try (ifConditional x)
+        <|> try (printStatement x)
+        <|> try (whileLoop x)
         <|> try (varCreations x)
         <|> try (varAssignment x)
-        <|> try (printStatement x)
+        -- <|> try (readStatement x)
         -- <|> try (loop x)
         -- <|> try (procedureCall x)
         -- <|> try (returnCall x)
@@ -158,7 +161,7 @@ statement x =
 
 printStatement :: Bool -> ParsecT [Token] MyState IO [Token]
 printStatement x = do
-        a <- idToken 
+        a <- printToken 
         b <- beginExpressionToken 
         (c, v) <- expression x
         d <- endExpressionToken 
@@ -168,6 +171,11 @@ printStatement x = do
                 return (a:b:c++[d])
         else return (a:b:c++[d])
 
+readStatement :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+readStatement x = do
+        a <- readToken  
+        if x then return ([a], Just (Type.String (unsafePerformIO getLine)))
+        else return ([a],Nothing )
 
 -- <conditional> := begin if ( <logic_expression> ): <statements> end if
 ifConditional :: Bool -> ParsecT [Token] MyState IO [Token]
@@ -202,3 +210,35 @@ elseConditional x = try (do
                 f <- elseToken
                 return (a:b:c:d++e:[f]))
                 <|> return []
+
+-- begin while(logicExpression): stmts end while
+whileLoop :: Bool -> ParsecT [Token] MyState IO [Token]
+whileLoop x = do
+                a <- beginScopeToken
+                b <- whileToken 
+                c <- openParenthesesToken
+                if x then do
+                        (d,v) <- logExpr x
+                        e <- closeParenthesesToken
+                        f <- colonToken
+                        let r = getLogExprResult (fromJust v)
+                        g <- statements r
+                        h <- endScopeToken
+                        i <- whileToken
+                        if r then do
+                                inp <- getInput 
+                                setInput (a:b:c:d++e:f:g++h:[i])
+                                fr <- whileLoop x
+                                setInput inp
+                                return fr
+                        else do
+                                return (a:b:c:d++e:f:g++h:[i])
+                else do
+                        (d,v) <- logExpr x
+                        e <- closeParenthesesToken
+                        f <- colonToken
+                        g <- statements x
+                        h <- endScopeToken
+                        i <- whileToken
+                        return (a:b:c:d++e:f:g++h:[i])
+

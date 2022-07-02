@@ -1,0 +1,6 @@
+begin int main():
+    real x = 2.0;
+    real y = 2.0;
+    int c = 3;
+    print(x*x - y + c); // com problema!!!
+end main;

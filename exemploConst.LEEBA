@@ -1,13 +1,12 @@
-begin struct Pair:
-    int x;
-    int y;
-end Pair;
-
 begin int main():
-    begin if (false):
-        print(1);
-    end if
-    begin else:
-        print(2);
-    end else;
+    int a = 0;
+    int b = 1;
+    string r = "";
+    string r1 = "";
+    begin while (a < 10):
+        a = a + 1;
+        r = read;
+        r1 = r1 + r;
+    end while;
+    print(r1);
 end main;
