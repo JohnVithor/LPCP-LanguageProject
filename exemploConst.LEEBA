@@ -4,7 +4,10 @@ begin struct Pair:
 end Pair;
 
 begin int main():
-    Pair a = Pair(2,8);
-    a.x = a.x + 2;
-    print(a);
+    begin if (false):
+        print(1);
+    end if
+    begin else:
+        print(2);
+    end else;
 end main;

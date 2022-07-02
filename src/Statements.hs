@@ -19,8 +19,12 @@ structCreation x = do
         d <- endExpressionToken
         s <- getState
         if x then do
-                return (a:b:[d], initStruct (typeTableGet a s) (extractArgs f))
-        else return (a:b:[d], Nothing )
+                return (a:b:extractTokens f ++ [d], initStruct (typeTableGet a s) (extractArgs f))
+        else return (a:b:extractTokens f ++ [d], Nothing )
+
+extractTokens :: [([Token], Maybe Type)] -> [Token]
+extractTokens [] = []
+extractTokens ((toks, _):others) = toks++extractTokens others
 
 extractArgs :: [([Token], Maybe Type)] -> [Type]
 extractArgs [] = []
@@ -101,8 +105,6 @@ varAssignment x = try (do
                         updateState(symtableUpdate (getIdData a, fromJust (initStructInner (fromJust (symtableGet (getIdData a) s)) [(getIdData c,fromJust v)] [fromJust v] )))
                         return (a:b:c:d:e)
                 else fail "tipos diferentes"
-        -- if x then return (a:b:[c], Just (getStructField (fromJust (symtableGet (getIdData a) s)) (getIdData c)))
-        -- else return (a:b:[c],Nothing)
         else return (a:b:c:d:e)
         ) <|> try (do
         a <- idToken
@@ -134,20 +136,19 @@ destroyCall x = do
         return (a : [b])
 
 statements :: Bool -> ParsecT [Token] MyState IO [Token]
-statements x = (do
+statements x = try (do
         c <- statement x
         d <- semiColonToken
         e <- statements x
-        -- s <- getState
-        -- liftIO (print s)
         return (c++[d]++e))
         <|> return []
 
 statement :: Bool -> ParsecT [Token] MyState IO [Token]
-statement x = try (varCreations x)
+statement x = 
+        try (ifConditional x)
+        <|> try (varCreations x)
         <|> try (varAssignment x)
         <|> try (printStatement x)
-        -- <|> try (conditional x)
         -- <|> try (loop x)
         -- <|> try (procedureCall x)
         -- <|> try (returnCall x)
@@ -166,3 +167,38 @@ printStatement x = do
                 liftIO (putStrLn "")
                 return (a:b:c++[d])
         else return (a:b:c++[d])
+
+
+-- <conditional> := begin if ( <logic_expression> ): <statements> end if
+ifConditional :: Bool -> ParsecT [Token] MyState IO [Token]
+ifConditional x = do
+                a <- beginScopeToken
+                b <- ifToken
+                c <- openParenthesesToken
+                (d,v) <- logExpr x
+                e <- closeParenthesesToken
+                f <- colonToken
+                if x then do
+                    let r = getLogExprResult (fromJust v)
+                    g <- statements r
+                    h <- endScopeToken
+                    i <- ifToken
+                    j <- elseConditional (not r)
+                    return (a:b:c:d++e:f:g++h:i:j)
+                else do
+                    g <- statements x
+                    h <- endScopeToken
+                    i <- ifToken
+                    j <- elseConditional x
+                    return (a:b:c:d++e:f:g++h:i:j)
+                
+elseConditional :: Bool -> ParsecT [Token] MyState IO [Token]
+elseConditional x = try (do
+                a <- beginScopeToken
+                b <- elseToken 
+                c <- colonToken
+                d <- statements x
+                e <- endScopeToken
+                f <- elseToken
+                return (a:b:c:d++e:[f]))
+                <|> return []

@@ -32,6 +32,10 @@ typeTableGet (Type _ name) (_, tbl, _)
 typeTableGet (Id _ name) (_, tbl, _) = getUserDefinedType name tbl
 typeTableGet _ _ = error "Not a type token"
 
+getLogExprResult :: Type -> Bool
+getLogExprResult (Type.Bool v) = v
+getLogExprResult _ = error "Not a Boolean value"
+
 
 getUserDefinedType :: String -> [Type] -> Type
 getUserDefinedType name [] = error "Type not Found"
