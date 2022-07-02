@@ -9,6 +9,7 @@ import TokenParser
 import Eval
 import Declarations
 import Expressions
+import Data.Data
 
 structCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 structCreation x = do
@@ -17,7 +18,7 @@ structCreation x = do
         f <- args x
         d <- endExpressionToken
         s <- getState
-        if x then do 
+        if x then do
                 return (a:b:[d], initStruct (typeTableGet a s) (extractArgs f))
         else return (a:b:[d], Nothing )
 
@@ -36,11 +37,12 @@ initStructInner (Type.Struct name trueParams) [] [] = Just (Type.Struct name tru
 initStructInner (Type.Struct name trueParams) (param:params) (arg:args) = initStructInner (Type.Struct name (replaceArg trueParams param arg)) params args
 initStructInner _ _ _ = fail "deu ruim caso de struct"
 
--- TODO: verificar tipos do argumento e do parametro
 replaceArg :: [(String,Type)] -> (String,Type) -> Type -> [(String,Type)]
 replaceArg [] _ _ = fail "deu ruim: argumento não encontrado"
-replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedName == name then (name,value):trueArgs
-                                                        else (expectedName,oldValue):replaceArg trueArgs (name,dValue) value
+replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedName == name then
+                if compatible oldValue value then (name,value):trueArgs
+                else error ("tipos incompatíveis na inicialização da struct: " ++ show oldValue ++ " " ++ show value)
+        else (expectedName,oldValue):replaceArg trueArgs (name,dValue) value
 
 args :: Bool -> ParsecT [Token] MyState IO [([Token], Maybe Type)]
 args x = try (do
@@ -48,7 +50,7 @@ args x = try (do
         b <- commaToken
         c <- args x
         return (a:c))
-        <|> do 
+        <|> do
         a <- expression x
         return [a]
 
@@ -56,14 +58,12 @@ initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Typ
 initialization x t = try (do
         c <- assignToken
         (d, r) <- try (structCreation x) <|> expression x
-        -- e <- semiColonToken
         if x then do
                 if compatible t (fromJust r) then return (c:d, r)
                 else fail "tipos diferentes"
         else return (c:d, r))
         <|>
         (do
-        -- e <- semiColonToken
         return ([],Just t))
 
 varCreation :: Bool -> ParsecT [Token] MyState IO [Token]

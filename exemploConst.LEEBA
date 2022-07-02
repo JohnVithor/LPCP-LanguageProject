@@ -1,8 +1,8 @@
 begin struct Pair:
-    string x;
+    int x;
     int y;
 end Pair;
 
 begin int main():
-    Pair a = Pair("jv",8);
+    Pair a = Pair(2,8);
 end main;

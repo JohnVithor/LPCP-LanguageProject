@@ -1,7 +1,6 @@
 module Type where
 
 import Lexer
-import qualified Data.Text.Internal.Fusion as Type
 
 data Type = Bool Bool        | 
             Int Int          |
