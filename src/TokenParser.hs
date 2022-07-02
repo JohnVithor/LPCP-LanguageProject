@@ -98,6 +98,11 @@ semiColonToken = tokenPrim show updatePos get_token where
   get_token (SemiColon p) = Just (SemiColon p)
   get_token _         = Nothing
 
+dotToken :: ParsecT [Token] u IO Token
+dotToken = tokenPrim show updatePos get_token where
+  get_token (Dot p) = Just (Dot p)
+  get_token _         = Nothing
+
 assignToken :: ParsecT [Token] u IO Token
 assignToken = tokenPrim show updatePos get_token where
   get_token (Assign p) = Just (Assign p)

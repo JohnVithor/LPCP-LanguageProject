@@ -39,12 +39,7 @@ numFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 numFactor x = try (do
                 (tk,tp) <- intToken <|> realToken
                 return ([tk], Just tp)
-                ) <|> try (do
-                a <- idToken
-                s <- getState
-                if x then return ([a], symtableGet (getIdData a) s)
-                else return ([a],Nothing)
-                ) <|> (do
+                ) <|> try (getVar x) <|> (do
                 a <- beginExpressionToken
                 (tk,tp) <- numExpr x
                 c <- endExpressionToken
@@ -103,12 +98,20 @@ logFactor x =   try (do
                 -- IS
 
 getVar :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-getVar x = do
+getVar x = try (do
+        a <- idToken
+        b <- dotToken
+        c <- idToken
+        s <- getState
+        if x then return (a:b:[c], Just (getStructField (fromJust (symtableGet (getIdData a) s)) (getIdData c)))
+        else return (a:b:[c],Nothing)
+        ) <|> try (do
         a <- idToken
         s <- getState
         if x then return ([a], symtableGet (getIdData a) s)
         else return ([a],Nothing)
-                
+        )
+
 
 -- Os operadores '==' e '!=' podem trabalhar com strings
 -- Utilizei apenas numExpr nos trys desses dois operadores

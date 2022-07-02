@@ -5,4 +5,5 @@ end Pair;
 
 begin int main():
     Pair a = Pair(2,8);
+    int b = a.x;
 end main;
