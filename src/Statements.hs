@@ -88,19 +88,35 @@ varCreations x = (do
                     <|> return []
 
 varAssignment :: Bool -> ParsecT [Token] MyState IO [Token]
-varAssignment x = do
-                a <- idToken
-                b <- assignToken
-                (c, v) <- expression x
-                s <- getState
-                d <- semiColonToken
-                if x then
-                        if compatible (fromJust (symtableGet (getIdData a) s)) (fromJust v) then
-                                do
-                                updateState(symtableUpdate (getIdData a, fromJust v))
-                                return ([a]++[b]++c++[d])
-                        else fail "tipos diferentes"
-                else return ([a]++[b]++c++[d])
+varAssignment x = try (do
+        a <- idToken
+        b <- dotToken
+        c <- idToken
+        d <- assignToken
+        (e, v) <- expression x
+        s <- getState
+        if x then
+                if compatible (getStructField (fromJust (symtableGet (getIdData a) s)) (getIdData c)) (fromJust v) then
+                        do
+                        updateState(symtableUpdate (getIdData a, fromJust (initStructInner (fromJust (symtableGet (getIdData a) s)) [(getIdData c,fromJust v)] [fromJust v] )))
+                        return (a:b:c:d:e)
+                else fail "tipos diferentes"
+        -- if x then return (a:b:[c], Just (getStructField (fromJust (symtableGet (getIdData a) s)) (getIdData c)))
+        -- else return (a:b:[c],Nothing)
+        else return (a:b:c:d:e)
+        ) <|> try (do
+        a <- idToken
+        b <- assignToken
+        (c, v) <- expression x
+        s <- getState
+        if x then
+                if compatible (fromJust (symtableGet (getIdData a) s)) (fromJust v) then
+                        do
+                        updateState(symtableUpdate (getIdData a, fromJust v))
+                        return ([a]++[b]++c)
+                else fail "tipos diferentes"
+        else return ([a]++[b]++c)
+        )
 
 returnCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 returnCall x = do
@@ -130,6 +146,7 @@ statements x = (do
 statement :: Bool -> ParsecT [Token] MyState IO [Token]
 statement x = try (varCreations x)
         <|> try (varAssignment x)
+        <|> try (printStatement x)
         -- <|> try (conditional x)
         -- <|> try (loop x)
         -- <|> try (procedureCall x)
@@ -137,3 +154,15 @@ statement x = try (varCreations x)
         -- <|> try (destroyCall x)
         -- <|> try (continueToken x)
         -- <|> breakToken x
+
+printStatement :: Bool -> ParsecT [Token] MyState IO [Token]
+printStatement x = do
+        a <- idToken 
+        b <- beginExpressionToken 
+        (c, v) <- expression x
+        d <- endExpressionToken 
+        if x then do
+                liftIO (printVal (fromJust v))
+                liftIO (putStrLn "")
+                return (a:b:c++[d])
+        else return (a:b:c++[d])

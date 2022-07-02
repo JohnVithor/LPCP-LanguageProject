@@ -20,6 +20,29 @@ getStructField :: Type -> String -> Type
 getStructField (Type.Struct _ values) field = getStructFieldInner values field
 getStructField _ _ = error "Not a Struct"
 
+printVal :: Type -> IO()
+printVal (Type.Bool v) = putStr (show v)
+printVal (Type.Int v) = putStr (show v)
+printVal (Type.Real v) = putStr (show v)
+printVal (Type.Char v) = putStr (show v)
+printVal (Type.String v) = putStr (show v)
+printVal (Type.List _ v) = putStr (show v)
+printVal (Type.Struct name []) = do 
+                putStr (name ++ "()")
+printVal (Type.Struct name ((s,v):vs)) = do 
+                putStr (name ++ "(")
+                printVal v
+                printVals vs
+                putStr ")"
+                
+printVals ::[(String, Type)] -> IO()
+printVals ((s,v):vs) = do
+    putStr ","
+    printVal v
+    printVals vs
+printVals [] = putStr ""
+
+
 getStructFieldInner :: [(String, Type)] -> String -> Type
 getStructFieldInner [] _ = error "deu ruim"
 getStructFieldInner ((name, value):values) field 
