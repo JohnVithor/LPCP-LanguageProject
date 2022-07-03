@@ -22,7 +22,7 @@ typeTableInsert :: Type -> MyState -> MyState
 typeTableInsert t (ty, tbl, subs) = (ty, tbl ++ [t], subs)
 
 typeTableGet :: Token -> MyState -> Type
-typeTableGet (Type _ name) (_, tbl, _)
+typeTableGet (Type _ name) (_, _, _)
     | name == "bool" = Type.Bool False
     | name == "int" = Type.Int 0
     | name == "real" = Type.Real 0.0
@@ -38,22 +38,22 @@ getLogExprResult _ = error "Not a Boolean value"
 
 
 getUserDefinedType :: String -> [Type] -> Type
-getUserDefinedType name [] = error "Type not Found"
+getUserDefinedType _ [] = error "Type not Found"
 getUserDefinedType name (t:tbl)
     | name == getStructName t = t
     | otherwise = getUserDefinedType name tbl
 
 getDefaultValue :: Token -> Type
-getDefaultValue (Type p "int") = Type.Int 0
-getDefaultValue (Type p "real") = Type.Real 0.0
-getDefaultValue (Type p "char") = Type.Char ' '
-getDefaultValue (Type p "string") = Type.String ""
-getDefaultValue (Type p "bool") = Type.Bool True
+getDefaultValue (Type _ "int") = Type.Int 0
+getDefaultValue (Type _ "real") = Type.Real 0.0
+getDefaultValue (Type _ "char") = Type.Char ' '
+getDefaultValue (Type _ "string") = Type.String ""
+getDefaultValue (Type _ "bool") = Type.Bool True
 -- Todo incluir busca nos tipos de usuarios (structs) ?
 getDefaultValue _ = error "Is not a Type Token"
 
 symtableGet :: String -> MyState -> Maybe Type
-symtableGet name ((id, value):t, a, b) = if name == id then Just value
+symtableGet name ((name2, value):t, a, b) = if name == name2 then Just value
                              else symtableGet name (t, a, b)
 symtableGet _ ([], _, _) = fail "variable not found"
 

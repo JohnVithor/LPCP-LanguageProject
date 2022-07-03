@@ -1,12 +1,9 @@
 module Subprograms where
 import Lexer
 import Type
-import Data.Maybe
 import Text.Parsec
-import Control.Monad.IO.Class
 import SymTable
 import TokenParser
-import Eval
 import Declarations
 import Statements
 
@@ -19,7 +16,7 @@ subprogramCreation :: Maybe Type -> ParsecT [Token] MyState IO Type
 subprogramCreation ret = do
         c <- idToken
         d <- beginExpressionToken
-        e <- params
+        (e,ps) <- params
         f <- endExpressionToken
         g <- colonToken 
         h <- statements False
@@ -30,21 +27,21 @@ subprogramCreation ret = do
         else
                 do
                 -- TODO: atualizar a lista de comandos !!!
-                updateState(subsprogramTableInsert (getIdData c, ret, e, [c]))
+                updateState(subsprogramTableInsert (getIdData c, ret, ps, [c]))
                 return (Type.Bool False)
 
-params :: ParsecT [Token] MyState IO [(String, Type)]
+params :: ParsecT [Token] MyState IO ([Token],[(String, Type)])
 params = (do
-        c <- try param <|> refParam
-        e <- params
-        return (c:e))
-        <|> return []
+        (tk, tp) <- param-- <|> refParam
+        (tks, ps) <- params
+        return (tk++tks,tp:ps))
+        <|> return ([],[])
 
-param :: ParsecT [Token] MyState IO (String, Type)
+param :: ParsecT [Token] MyState IO ([Token],(String, Type))
 param = do
         (tk, tp) <- dataType
         b <- idToken
-        return (getIdData b, tp)
+        return (tk, (getIdData b, tp))
 
 refParam :: ParsecT [Token] MyState IO (String, Type)
 refParam = do

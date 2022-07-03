@@ -5,8 +5,7 @@ import Text.Parsec
 import Type
 
 updatePos :: p1 -> p2 -> [a] -> p1
-updatePos pos _ (tok:_) = pos -- necessita melhoria
-updatePos pos _ []      = pos
+updatePos pos _ _ = pos -- necessita melhoria
 
 getIdData :: Token -> String
 getIdData (Id _ x) = x

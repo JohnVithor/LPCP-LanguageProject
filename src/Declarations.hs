@@ -1,12 +1,9 @@
 module Declarations where
 import Lexer
 import Type
-import Data.Maybe
 import Text.Parsec
-import Control.Monad.IO.Class
 import SymTable
 import TokenParser
-import Eval
 
 structDeclaration :: ParsecT [Token] MyState IO [Token]
 structDeclaration = do
@@ -16,13 +13,12 @@ structDeclaration = do
             (e, fields) <- fieldCreations
             f <- endScopeToken
             g <- idToken
-            s <- getState
             if getIdData c /= getIdData g then fail "Nome da struct não é o mesmo"
             else
                 do
                 h <- semiColonToken
                 updateState(typeTableInsert (Type.Struct (getIdData c) fields))
-                return (f:[g])
+                return (b:c:d:e++[f,g,h])
 
 fieldCreations :: ParsecT [Token] MyState IO ([Token],[(String, Type)])
 fieldCreations = (do
@@ -35,7 +31,6 @@ fieldCreation :: ParsecT [Token] MyState IO ([Token],(String, Type))
 fieldCreation = do
             (a, t) <- dataType
             b <- idToken
-        --     (c, v) <- initialization a
             c <- semiColonToken 
             return (a++b:[c],(getIdData b, t))
 
@@ -44,7 +39,7 @@ dataType = do
         s <- getState
         t <- typeToken <|> idToken
         (r, v) <- listType (typeTableGet t s)
-        return ([t], typeTableGet t s)
+        return (t:r, v)
 
 listType :: Type -> ParsecT [Token] MyState IO ([Token],Type)
 listType t = try (do

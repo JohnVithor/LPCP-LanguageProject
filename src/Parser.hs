@@ -3,13 +3,9 @@ module Parser where
 import Lexer
 import Text.Parsec
 import Control.Monad.IO.Class
-import Eval
 import TokenParser
 import SymTable
 import Type
-import Data.Maybe
-import GHC.Exception (fromCallSiteList)
-import Expressions
 import Statements
 import Declarations
 import Subprograms
@@ -36,7 +32,8 @@ globalVarCreations = try (do
 declaration :: ParsecT [Token] MyState IO [Token]
 declaration = do
         a <- beginScopeToken
-        try structDeclaration <|> mainFunction
+        b <- try structDeclaration <|> mainFunction
+        return (a:b)
         --  <|> try functionCreation <|> subprogramCreation Nothing
 
 declarations :: ParsecT [Token] MyState IO [Token]
@@ -45,22 +42,6 @@ declarations = (do
                 e <- declarations
                 return (c++e))
                 <|> return []
-
--- -- concatenação de strings "string 1" + " string 2"
--- stringConcatExpression :: ParsecT [Token] MyState IO Type
--- stringConcatExpression = do
---             a <- stringExpression
---             b <- plusToken
---             c <- stringExpression
---             return (eval a b c)
-
--- Expressão envolvendo strings ou chars ou id
--- TODO: verificar o tipo de idToken
--- stringExpression :: ParsecT [Token] MyState IO [Token]
--- stringExpression = stringToken
---                <|> charToken
---                <|> idGetVal
---                <|> stringConcatExpression
 
 --parser para declaração de constante int
 --constant int a = 10;
@@ -79,11 +60,6 @@ declarations = (do
 --                 updateState(symtableInsert (getIdData b, d))
 --                 return (Type.Bool False) -- O ideal seria não retornar nada.
 
---a = 10;
-
--- casting :: ParsecT [Token] MyState IO Token
--- casting = castingBoolToken <|> castingIntToken <|> castingRealToken <|> castingCharToken <|> castingStringToken
-
 literal :: ParsecT [Token] MyState IO (Token,Type)
 literal = intToken<|> realToken <|> charToken <|> stringToken <|> boolToken
 
@@ -92,7 +68,7 @@ mainFunction = do
         b <- typeToken
         c <- idToken
         d <- beginExpressionToken
-        e <- params
+        (e, ps) <- params
         f <- endExpressionToken
         g <- colonToken
         h <- statements True
@@ -104,8 +80,8 @@ mainFunction = do
                 if getIdData c /= "main" then fail "função main não encontrada" else
                 do
                 -- TODO: atualizar a lista de comandos !!!
-                updateState(subsprogramTableInsert (getIdData c, Just (Type.Int 0), e, [c]))
-                return h
+                updateState(subsprogramTableInsert (getIdData c, Just (Type.Int 0), ps, [c]))
+                return (b:c:d:e++f:g:h++[i,j,l])
 
 program :: ParsecT [Token] MyState IO [Token]
 program = do
@@ -114,7 +90,7 @@ program = do
         eof
         s <- getState
         liftIO (print s)
-        return []
+        return (a++b)
         -- return (runFunc (getMainFunc s) [])
 
 parser :: [Token] -> IO (Either ParseError [Token])

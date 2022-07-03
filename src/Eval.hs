@@ -1,8 +1,6 @@
 module Eval where
 import Lexer
 import Type
-import SymTable (Subprogram)
-import Data.Maybe
 import Text.Read
 
 cast :: Token -> Type -> Type
@@ -81,5 +79,5 @@ evalUni (Minus _ ) (Type.Int y) = Type.Int (-y)
 evalUni (Minus _ ) (Type.Real y) = Type.Real (-y)
 evalUni _ _ = error "deu ruim"
 
-runFunc :: Subprogram -> [(String, Type)] -> Type
-runFunc (name, t, args, stmts) params = fromJust t
+-- runFunc :: Subprogram -> [(String, Type)] -> Type
+-- runFunc (name, t, args, stmts) params = fromJust t

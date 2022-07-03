@@ -3,7 +3,6 @@ import Lexer
 import Type
 import Data.Maybe
 import Text.Parsec
-import Control.Monad.IO.Class
 import SymTable
 import TokenParser
 import Eval
@@ -57,7 +56,6 @@ numFactor x = try (do
                 a <- beginExpressionToken
                 (tk,tp) <- numExpr x
                 c <- endExpressionToken
-                s <- getState
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
                 )
@@ -94,7 +92,6 @@ logTerm2 x = try (do
 logFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 logFactor x =   try (do
                 (tk,tp) <- comparison x
-                s <- getState
                 if x then return (tk, tp)
                 else return (tk,Nothing)
                 ) <|> try (do
@@ -104,7 +101,6 @@ logFactor x =   try (do
                 a <- beginExpressionToken
                 (tk,tp) <- logExpr x
                 c <- endExpressionToken
-                s <- getState
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
                 )

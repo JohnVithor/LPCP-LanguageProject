@@ -1,7 +1,5 @@
 module Type where
 
-import Lexer
-
 data Type = Bool Bool        | 
             Int Int          |
             Real Double      | 
@@ -29,14 +27,14 @@ printVal (Type.String v) = putStr (show v)
 printVal (Type.List _ v) = putStr (show v)
 printVal (Type.Struct name []) = do 
                 putStr (name ++ "()")
-printVal (Type.Struct name ((s,v):vs)) = do 
+printVal (Type.Struct name ((_,v):vs)) = do 
                 putStr (name ++ "(")
                 printVal v
                 printVals vs
                 putStr ")"
                 
 printVals ::[(String, Type)] -> IO()
-printVals ((s,v):vs) = do
+printVals ((_,v):vs) = do
     putStr ","
     printVal v
     printVals vs

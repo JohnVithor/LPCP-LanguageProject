@@ -6,41 +6,34 @@ import Text.Parsec
 import Control.Monad.IO.Class
 import SymTable
 import TokenParser
-import Eval
 import Declarations
 import Expressions
-import Data.Data
 import GHC.IO.Unsafe (unsafePerformIO)
-import System.IO
 
 structCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 structCreation x = do
         a <- idToken
         b <- beginExpressionToken
-        f <- args x
+        (f,vs) <- args x
         d <- endExpressionToken
         s <- getState
         if x then do
-                return (a:b:extractTokens f ++ [d], initStruct (typeTableGet a s) (extractArgs f))
-        else return (a:b:extractTokens f ++ [d], Nothing )
+                return (a:b:f++[d], initStruct (typeTableGet a s) (extractArgs vs))
+        else return (a:b:f++ [d], Nothing )
 
-extractTokens :: [([Token], Maybe Type)] -> [Token]
-extractTokens [] = []
-extractTokens ((toks, _):others) = toks++extractTokens others
-
-extractArgs :: [([Token], Maybe Type)] -> [Type]
+extractArgs :: [Maybe Type] -> [Type]
 extractArgs [] = []
-extractArgs ((toks, Just t):others) = t:extractArgs others
-extractArgs ((toks, Nothing):others) = fail "deu ruim"
+extractArgs ((Just t):others) = t:extractArgs others
+extractArgs (Nothing:_) = fail "deu ruim"
 
 initStruct :: Type -> [Type] -> Maybe Type
-initStruct (Type.Struct name params) args = initStructInner (Type.Struct name params) params args
+initStruct (Type.Struct name params) oargs = initStructInner (Type.Struct name params) params oargs
 initStruct _ _ = fail "deu ruim outro caso de struct"
 
 
 initStructInner :: Type -> [(String,Type)] -> [Type] -> Maybe Type
 initStructInner (Type.Struct name trueParams) [] [] = Just (Type.Struct name trueParams)
-initStructInner (Type.Struct name trueParams) (param:params) (arg:args) = initStructInner (Type.Struct name (replaceArg trueParams param arg)) params args
+initStructInner (Type.Struct name trueParams) (param:params) (arg:oargs) = initStructInner (Type.Struct name (replaceArg trueParams param arg)) params oargs
 initStructInner _ _ _ = fail "deu ruim caso de struct"
 
 replaceArg :: [(String,Type)] -> (String,Type) -> Type -> [(String,Type)]
@@ -50,15 +43,15 @@ replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedN
                 else error ("tipos incompatíveis na inicialização da struct: " ++ show oldValue ++ " " ++ show value)
         else (expectedName,oldValue):replaceArg trueArgs (name,dValue) value
 
-args :: Bool -> ParsecT [Token] MyState IO [([Token], Maybe Type)]
+args :: Bool -> ParsecT [Token] MyState IO ([Token], [Maybe Type])
 args x = try (do
-        a <- expression x
+        (a, v) <- expression x
         b <- commaToken
-        c <- args x
-        return (a:c))
+        (c, vs) <- args x
+        return (a++b:c, v:vs))
         <|> do
-        a <- expression x
-        return [a]
+        (a,v) <- expression x
+        return (a, [v])
 
 initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 initialization x t = try (do
@@ -80,7 +73,6 @@ varCreation x = do
             if x then
                 if not (compatible t (fromJust r)) then fail "tipos diferentes" else
                         do
-                        s <- getState
                         updateState(symtableInsert (getIdData b, fromJust r))
                         return (a++[b]++c)
                 else
@@ -129,7 +121,7 @@ returnCall x = do
         -- expression
 
 destroyCall :: Bool -> ParsecT [Token] MyState IO [Token]
-destroyCall x = do
+destroyCall _ = do
         a <- destroyToken
         b <- idToken
         -- TODO: remover id da heap
@@ -235,7 +227,7 @@ whileLoop x = do
                         else do
                                 return (a:b:c:d++e:f:g++h:[i])
                 else do
-                        (d,v) <- logExpr x
+                        (d,_) <- logExpr x
                         e <- closeParenthesesToken
                         f <- colonToken
                         g <- statements x
