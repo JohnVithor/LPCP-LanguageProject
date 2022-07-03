@@ -279,7 +279,7 @@ castingBoolToken = tokenPrim show updatePos get_token where
   
 castingIntToken :: ParsecT [Token] u IO Token
 castingIntToken = tokenPrim show updatePos get_token where
-  get_token (CastingInt p) = Just (CastingBool p)
+  get_token (CastingInt p) = Just (CastingInt p)
   get_token _      = Nothing
 
 castingRealToken :: ParsecT [Token] u IO Token

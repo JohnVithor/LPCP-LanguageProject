@@ -12,7 +12,21 @@ import Eval
 
 -- Parser geral de expressões
 expression :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
-expression x = try (numExpr x) <|> try (logExpr x) <|> stringExpr x
+expression x = try (numExpr x)
+        <|> try (logExpr x)
+        <|> try (stringExpr x)
+        <|> ( do 
+                a <- castingToken
+                (b, v) <- expression x
+                if x then return (a:b, Just (cast a (fromJust v))) else return (a:b, Nothing)
+        )
+
+castingToken :: ParsecT [Token] u IO Token
+castingToken = castingBoolToken
+        <|> castingIntToken
+        <|> castingRealToken 
+        <|> castingCharToken 
+        <|> castingStringToken  
 
 -- Parser inicial para expressões numéricas (soma e subtração)
 numExpr :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)

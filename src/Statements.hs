@@ -174,9 +174,8 @@ printStatement x = do
 readStatement :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 readStatement x = do
         a <- readToken
-        if x then return ([a], Just (Type.String (unsafePerformIO getLine )))
+        if x then return ([a], Just (Type.String (unsafePerformIO getLine)))
         else return ([a],Nothing )
-
 
 
 -- <conditional> := begin if ( <logic_expression> ): <statements> end if

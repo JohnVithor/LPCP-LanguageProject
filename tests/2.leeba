@@ -1,0 +1,38 @@
+begin int main():
+    int x;
+    string a;
+    int interval_1 = 0;
+    int interval_2 = 0;
+    int interval_3 = 0;
+    int interval_4 = 0;
+    begin while(x >= 0):
+        a = read;
+        x = (int) a;
+        begin if ((x >= 0) and (x <= 25)):
+            interval_1 = interval_1 + 1;
+        end if
+        begin else:
+            begin if ((x >= 26) and (x <= 50)):
+                interval_2 = interval_2 + 1;
+            end if
+            begin else:
+                begin if ((x >= 51) and (x <= 75)):
+                    interval_3 = interval_3 + 1;
+                end if
+                begin else:
+                    begin if ((x >= 76) and (x <= 100)):
+                        interval_4 = interval_4 + 1;
+                    end if;
+                end else;
+            end else;
+        end else;
+    end while;
+    print("No intervalo [0:25] temos:");
+    print(interval_1);
+    print("No intervalo [26:50] temos:");
+    print(interval_2);
+    print("No intervalo [51:75] temos:");
+    print(interval_3);
+    print("No intervalo [76:100] temos:");
+    print(interval_4);
+end main;

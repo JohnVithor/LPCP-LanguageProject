@@ -3,10 +3,22 @@ import Lexer
 import Type
 import SymTable (Subprogram)
 import Data.Maybe
+import Text.Read
 
 cast :: Token -> Type -> Type
 cast (Lexer.CastingReal _) (Type.Int value) = Type.Real (fromIntegral value)
-cast _ _ = error "deu ruim"
+cast (Lexer.CastingReal _) (Type.Real value) = Type.Real value
+cast (Lexer.CastingReal _) (Type.String value) = do
+    let v = readMaybe value
+    maybe (error ("Não é possível converter '" ++ value ++ "' para Real")) Type.Real v
+
+cast (Lexer.CastingInt _) (Type.Int value) = Type.Int value
+cast (Lexer.CastingInt _) (Type.Real value) = Type.Int (truncate value)
+cast (Lexer.CastingInt _) (Type.String value) = do
+    let v = readMaybe value
+    maybe (error ("Não é possível converter '" ++ value ++ "' para Int")) Type.Int v
+
+cast a b = error ("cast inválido: " ++ show a ++ show b)
 
 
 eval :: Type -> Token -> Type -> Type
