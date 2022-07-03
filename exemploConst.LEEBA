@@ -1,12 +1,11 @@
 begin int main():
-    int a = 0;
-    int b = 1;
-    string r = "";
-    string r1 = "";
-    begin while (a < 10):
-        a = a + 1;
-        r = read;
-        r1 = r1 + r;
-    end while;
-    print(r1);
+    string r = read;
+    print(r);
+    r = read;
+    print(r);
+    r = read;
+    print(r);
+    r = read;
+    print(r);
+    r = read;
 end main;

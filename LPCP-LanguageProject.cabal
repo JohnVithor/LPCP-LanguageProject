@@ -24,6 +24,7 @@ extra-source-files:
     README.md
 
 library
+    ghc-options:     -Wall -fno-cse -fno-full-laziness
     exposed-modules: Lexer, Parser, Eval, SymTable, TokenParser, Type, Expressions, Declarations, Statements, Subprograms
 
     -- Modules included in this library but not exported.
@@ -36,6 +37,7 @@ library
     default-language: Haskell2010
 
 executable LPCP-LanguageProject
+    ghc-options:      -Wall -fno-cse -fno-full-laziness
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.

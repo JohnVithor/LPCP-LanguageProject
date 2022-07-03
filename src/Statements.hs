@@ -11,8 +11,7 @@ import Declarations
 import Expressions
 import Data.Data
 import GHC.IO.Unsafe (unsafePerformIO)
-import System.IO (isEOF)
-import GHC.IO.Handle (hIsEOF)
+import System.IO
 
 structCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 structCreation x = do
@@ -145,7 +144,7 @@ statements x = try (do
         <|> return []
 
 statement :: Bool -> ParsecT [Token] MyState IO [Token]
-statement x = 
+statement x =
         try (ifConditional x)
         <|> try (printStatement x)
         <|> try (whileLoop x)
@@ -161,21 +160,24 @@ statement x =
 
 printStatement :: Bool -> ParsecT [Token] MyState IO [Token]
 printStatement x = do
-        a <- printToken 
-        b <- beginExpressionToken 
+        a <- printToken
+        b <- beginExpressionToken
         (c, v) <- expression x
-        d <- endExpressionToken 
+        d <- endExpressionToken
         if x then do
                 liftIO (printVal (fromJust v))
                 liftIO (putStrLn "")
                 return (a:b:c++[d])
         else return (a:b:c++[d])
 
+{-# NOINLINE readStatement #-}
 readStatement :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 readStatement x = do
-        a <- readToken  
-        if x then return ([a], Just (Type.String (unsafePerformIO getLine)))
+        a <- readToken
+        if x then return ([a], Just (Type.String (unsafePerformIO getLine )))
         else return ([a],Nothing )
+
+
 
 -- <conditional> := begin if ( <logic_expression> ): <statements> end if
 ifConditional :: Bool -> ParsecT [Token] MyState IO [Token]
@@ -199,11 +201,11 @@ ifConditional x = do
                     i <- ifToken
                     j <- elseConditional x
                     return (a:b:c:d++e:f:g++h:i:j)
-                
+
 elseConditional :: Bool -> ParsecT [Token] MyState IO [Token]
 elseConditional x = try (do
                 a <- beginScopeToken
-                b <- elseToken 
+                b <- elseToken
                 c <- colonToken
                 d <- statements x
                 e <- endScopeToken
@@ -215,7 +217,7 @@ elseConditional x = try (do
 whileLoop :: Bool -> ParsecT [Token] MyState IO [Token]
 whileLoop x = do
                 a <- beginScopeToken
-                b <- whileToken 
+                b <- whileToken
                 c <- openParenthesesToken
                 if x then do
                         (d,v) <- logExpr x
@@ -226,7 +228,7 @@ whileLoop x = do
                         h <- endScopeToken
                         i <- whileToken
                         if r then do
-                                inp <- getInput 
+                                inp <- getInput
                                 setInput (a:b:c:d++e:f:g++h:[i])
                                 fr <- whileLoop x
                                 setInput inp
