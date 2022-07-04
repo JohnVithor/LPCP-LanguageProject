@@ -2,6 +2,7 @@ module Eval where
 import Lexer
 import Type
 import Text.Read
+import SymTable
 
 cast :: Token -> Type -> Type
 cast (Lexer.CastingReal _) (Type.Int value) = Type.Real (fromIntegral value)
@@ -79,5 +80,8 @@ evalUni (Minus _ ) (Type.Int y) = Type.Int (-y)
 evalUni (Minus _ ) (Type.Real y) = Type.Real (-y)
 evalUni _ _ = error "deu ruim"
 
--- runFunc :: Subprogram -> [(String, Type)] -> Type
--- runFunc (name, t, args, stmts) params = fromJust t
+getStmts :: Subprogram -> [Token]
+getStmts (_, _, _, stmts) = stmts
+
+getArgs :: Subprogram -> [(String, Type)]
+getArgs (_, _, args, _) = args

@@ -2,13 +2,13 @@ module Parser where
 
 import Lexer
 import Text.Parsec
-import Control.Monad.IO.Class
 import TokenParser
 import SymTable
 import Type
 import Statements
 import Declarations
 import Subprograms
+import Eval
 
 globalVars :: ParsecT [Token] MyState IO [Token]
 globalVars = try (do
@@ -32,9 +32,8 @@ globalVarCreations = try (do
 declaration :: ParsecT [Token] MyState IO [Token]
 declaration = do
         a <- beginScopeToken
-        b <- try structDeclaration <|> mainFunction
+        b <- try structDeclaration <|> try functionCreation <|> subprogramCreation Nothing
         return (a:b)
-        --  <|> try functionCreation <|> subprogramCreation Nothing
 
 declarations :: ParsecT [Token] MyState IO [Token]
 declarations = (do
@@ -63,35 +62,16 @@ declarations = (do
 literal :: ParsecT [Token] MyState IO (Token,Type)
 literal = intToken<|> realToken <|> charToken <|> stringToken <|> boolToken
 
-mainFunction :: ParsecT [Token] MyState IO [Token]
-mainFunction = do
-        b <- typeToken
-        c <- idToken
-        d <- beginExpressionToken
-        (e, ps) <- params
-        f <- endExpressionToken
-        g <- colonToken
-        h <- statements True
-        i <- endScopeToken
-        j <- idToken
-        l <- semiColonToken
-        if getIdData c /= getIdData j then fail "Nome do subprograma não é o mesmo"
-        else
-                if getIdData c /= "main" then fail "função main não encontrada" else
-                do
-                -- TODO: atualizar a lista de comandos !!!
-                updateState(subsprogramTableInsert (getIdData c, Just (Type.Int 0), ps, [c]))
-                return (b:c:d:e++f:g:h++[i,j,l])
-
 program :: ParsecT [Token] MyState IO [Token]
 program = do
-        a <- globalVars
-        b <- declarations
-        eof
+        _ <- globalVars
+        _ <- declarations
+        eof       
         s <- getState
-        liftIO (print s)
-        return (a++b)
-        -- return (runFunc (getMainFunc s) [])
+        setInput (getStmts (getMainFunc s))
+        _ <- statements True
+        return []
+
 
 parser :: [Token] -> IO (Either ParseError [Token])
 parser = runParserT program ([], [], []) "Error message"

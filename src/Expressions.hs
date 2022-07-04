@@ -31,11 +31,23 @@ castingToken = castingBoolToken
 numExpr :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 numExpr x = try (do
         (t1, n1) <- numTerm x
-        op <- plusToken <|> minusToken
-        (t2, n2) <- numExpr x
-        if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
-        else return (t1 ++ [op] ++ t2, Nothing))
+        (t2, n2) <- evalRemaining x n1
+        if x then return (t1 ++ t2, n2)
+        else return (t1 ++ t2, Nothing))
         <|> numTerm x
+
+evalRemaining :: Bool -> Maybe Type -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+evalRemaining x n1 = try(do
+                op <- plusToken <|> minusToken
+                (t2, n2) <- numTerm x
+                if x then do
+                        let e = eval (fromJust n1) op (fromJust n2)
+                        (t3, r) <- evalRemaining x (Just e)
+                        return (op:t2++t3, r) 
+                else do
+                        (t3, r) <- evalRemaining x Nothing
+                        return (op:t2++t3, r))
+                <|> return ([], n1)
 
 -- Parser secundário para expressões numéricas (multiplicação, divisão e módulo)
 numTerm :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
