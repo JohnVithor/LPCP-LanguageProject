@@ -6,6 +6,7 @@ import Text.Parsec
 import SymTable
 import TokenParser
 import Eval
+import Control.Monad.IO.Class (MonadIO(liftIO))
 
 --TODO: campos de structs, acesso a array, chamada de função, casting 
 
@@ -125,12 +126,17 @@ getVar x = try (do
         b <- dotToken
         c <- idToken
         s <- getState
-        if x then return (a:b:[c], Just (getStructField (fromJust (symtableGet (getIdData a) s)) (getIdData c)))
+        if x then do
+                let (_, oldValue, _, _, _) = symtableGet (getIdData a) s
+                let fieldValue = getStructField oldValue (getIdData c)
+                return (a:b:[c], Just fieldValue)
         else return (a:b:[c],Nothing)
         ) <|> try (do
         a <- idToken
         s <- getState
-        if x then return ([a], symtableGet (getIdData a) s)
+        if x then do
+                let (_, oldValue, _, _, _) = symtableGet (getIdData a) s
+                return ([a], Just oldValue)
         else return ([a],Nothing)
         )
 

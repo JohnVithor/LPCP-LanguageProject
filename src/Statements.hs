@@ -53,27 +53,30 @@ args x = try (do
         (a,v) <- expression x
         return (a, [v])
 
-initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type, (Bool,String))
+ -- O par (Bool,String) indica se é ou não uma ref e qual a key da ref, no momento não temos ref
 initialization x t = try (do
         c <- assignToken
         (d, r) <- try (readStatement x) <|> try (structCreation x) <|> expression x
         if x then do
-                if compatible t (fromJust r) then return (c:d, r)
+                if compatible t (fromJust r) then return (c:d, r,(False,""))
                 else fail "tipos diferentes"
-        else return (c:d, r))
+        else return (c:d, r,(False,"")))
         <|>
         (do
-        return ([],Just t))
+        return ([],Just t,(False,"")))
 
 varCreation :: Bool -> ParsecT [Token] MyState IO [Token]
 varCreation x = do
             (a, t) <- dataType
             b <- idToken
-            (c, r) <- try (initialization x t)
+            (c, v, (rf,rp)) <- try (initialization x t)
             if x then
-                if not (compatible t (fromJust r)) then fail "tipos diferentes" else
+                if not (compatible t (fromJust v)) then fail "tipos diferentes" else
                         do
-                        updateState(symtableInsert (getIdData b, fromJust r))
+                        -- o False abaixo é para constantes, no momento sem constantes
+                        let var = (getIdData b, fromJust v, rf, False, rp)
+                        updateState(symtableInsert var)
                         return (a++[b]++c)
                 else
                         return (a++[b]++c)
@@ -91,25 +94,35 @@ varAssignment x = try (do
         b <- dotToken
         c <- idToken
         s <- getState
-        (e, v) <- initialization x (fromJust (symtableGet (getIdData a) s))
-        if x then
-                if compatible (getStructField (fromJust (symtableGet (getIdData a) s)) (getIdData c)) (fromJust v) then
+        if x then do
+                let (key, oldValue, refFlag, constFlag, refName) = symtableGet (getIdData a) s
+                let fieldValue = getStructField oldValue (getIdData c)
+                (e, v, (rf,rp)) <- initialization x fieldValue
+                -- o que fazer com esses valores de ref e sua key? são permitidos?
+                if compatible fieldValue (fromJust v) then
                         do
-                        updateState(symtableUpdate (getIdData a, fromJust (initStructInner (fromJust (symtableGet (getIdData a) s)) [(getIdData c,fromJust v)] [fromJust v] )))
+                        let newValue = fromJust (initStructInner oldValue [(getIdData c,fromJust v)] [fromJust v])
+                        updateState(symtableUpdate (key, newValue, refFlag, constFlag, refName))
                         return (a:b:c:e)
                 else fail "tipos diferentes"
-        else return (a:b:c:e)
+        else do
+                (e, _, _) <- initialization x (Type.Bool False)
+                return (a:b:c:e)
         ) <|> try (do
         a <- idToken
         s <- getState
-        (c, v) <- initialization x (fromJust (symtableGet (getIdData a) s))
-        if x then
-                if compatible (fromJust (symtableGet (getIdData a) s)) (fromJust v) then
+        if x then do
+                let (key, oldValue, refFlag, constFlag, refName) = symtableGet (getIdData a) s
+                (c, v, (rf,rp)) <- initialization x oldValue
+                -- o que fazer com esses valores de ref e sua key? são permitidos?
+                if compatible oldValue (fromJust v) then
                         do
-                        updateState(symtableUpdate (getIdData a, fromJust v))
+                        updateState(symtableUpdate (key, fromJust v, refFlag, constFlag, refName))
                         return (a:c)
                 else fail "tipos diferentes"
-        else return (a:c)
+        else do
+                (c, _, _) <- initialization x (Type.Bool False)
+                return (a:c)
         )
 
 returnCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
@@ -181,7 +194,9 @@ ifConditional x = do
                 f <- colonToken
                 if x then do
                     let r = getLogExprResult (fromJust v)
+                    updateState enterScope
                     g <- statements r
+                    updateState exitScope
                     h <- endScopeToken
                     i <- ifToken
                     j <- elseConditional (not r)
@@ -198,7 +213,9 @@ elseConditional x = try (do
                 a <- beginScopeToken
                 b <- elseToken
                 c <- colonToken
+                updateState enterScope
                 d <- statements x
+                updateState exitScope
                 e <- endScopeToken
                 f <- elseToken
                 return (a:b:c:d++e:[f]))
@@ -215,7 +232,9 @@ whileLoop x = do
                         e <- closeParenthesesToken
                         f <- colonToken
                         let r = getLogExprResult (fromJust v)
+                        updateState enterScope
                         g <- statements r
+                        updateState exitScope
                         h <- endScopeToken
                         i <- whileToken
                         if r then do

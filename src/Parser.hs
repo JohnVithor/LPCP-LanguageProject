@@ -9,6 +9,7 @@ import Statements
 import Declarations
 import Subprograms
 import Eval
+import Control.Monad.IO.Class
 
 globalVars :: ParsecT [Token] MyState IO [Token]
 globalVars = try (do
@@ -69,9 +70,12 @@ program = do
         eof       
         s <- getState
         setInput (getStmts (getMainFunc s))
+        updateState (callFunc "main")
         _ <- statements True
+        -- s <- getState
+        -- liftIO(print s)
         return []
 
 
 parser :: [Token] -> IO (Either ParseError [Token])
-parser = runParserT program ([], [], []) "Error message"
+parser = runParserT program ([], [], [],0,"") "Error message"

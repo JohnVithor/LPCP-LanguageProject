@@ -1,0 +1,12 @@
+begin int main():
+    int x = 1;
+    begin if (x == 1):
+        int a = 3;
+        begin if (a == 3):
+            int x = 3;
+            print(x);
+        end if;
+        print(x);
+    end if;
+    print(x);
+end main;
