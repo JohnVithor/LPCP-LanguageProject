@@ -1,0 +1,132 @@
+// problema 1
+begin int main():
+	real x = 10.0;
+	real y = 5.2;
+	int c = 2;
+	print(x*x - y + c);
+end main;
+
+//problema 2
+
+//problema 3
+begin int main():
+	real M0[][];
+	real M1[][];
+	// ler dados
+	int i = 0;
+	int j = 0;
+	int k = 0;
+	int M0_len;
+	int M1_len;
+	real M_sum[][];
+	real M_prod[][];
+	real prod_sum;
+	begin while (i < M0_len):
+		begin while (j < M1_len):
+			prod_sum = 0;
+			M_sum[i][j] = M0[i][j] + M1[i][j];
+			begin while (i < M0_len):
+				prod_sum = prod_sum + M0[i][k]*M1[k][j];
+			end while;
+			M_prod[i][j] = prod_sum;
+		end while;
+	end while;
+	print("Soma: ");
+	begin while (i < M0_len):
+		begin while (j < M1_len):
+			print(M_sum[i][j]);
+		end while;
+	end while;
+	
+	
+	begin if (M0_len != M1_len;):
+		print("impossivel multiplicar")
+	end if;
+	begin else:
+		begin while (i < M0_len):
+			begin while (j < M1_len):
+				print(M_prod[i][j]);
+			end while;
+		end while;
+	end else;
+end main;
+
+//problema 4
+begin struct rational_t:
+	int num;
+	int den;
+end struct;
+
+begin rational_t frac(int a, int b):
+	rational_t rt;
+	rt.num = a;
+	rt.den = b;
+	return rt; 
+end frac;
+
+//alternativa: multiplicação de frações
+begin bool eq(rational_t a, rational_t b):
+	begin if (((a.num % b.num == 0) or (b.num % a.num==0)) and ((a.den % b.den == 0) or (b.den % a.den == 0)):
+		return true;
+	end if;
+	return false;
+end eq;
+
+begin rational_t sum(rational_t a, rational_t b):
+
+	return rt;
+end sum;
+
+begin rational_t sub(rational_t a, rational_t b):
+	return rt;
+end sub;
+
+begin rational_t neg(rational_t a):
+	a.num = -a.num;
+	return a;
+end neg;
+
+begin rational_t prod(rational_t a, rational_t b):
+	rational_t rt;
+	rt.num = a.num * b.num;
+	rt.den = a.den * b.den;
+	return rt;
+end prod;
+
+begin rational_t div(rational_t a, rational_t b):
+	rational_t rt;
+	rt.num = a.num * b.den;
+	rt.den = a.den * b.num;
+	return rt;
+end div;
+
+begin rational_t inv(rational_t a):
+	rational_t rt;
+	rt.num = a.den;
+	rt.den = a.num;
+	return rt;
+end inv;
+
+begin int main():
+	
+end main;
+
+//problema 5
+begin mdc(int m, int n, ref int r):
+	begin if (n%m == 0):
+		r = n;
+	end if;
+	begin else:
+		begin if (m%n == 0):
+			r = m;
+		end if;
+	end else;
+	begin else:
+		begin if (m>n):
+			mdc(n, m%n, ref r);
+		end if;
+		begin if (n>n):
+			mdc(m, n%m, ref r);
+		end if;
+	end else;
+end mdc;
