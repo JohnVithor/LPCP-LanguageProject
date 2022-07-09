@@ -6,7 +6,6 @@ import Text.Parsec
 import SymTable
 import TokenParser
 import Eval
-import Control.Monad.IO.Class (MonadIO(liftIO))
 
 --TODO: campos de structs, acesso a array, chamada de função, casting 
 
@@ -146,9 +145,9 @@ getVar x = try (do
 --Falta implementar stringExpr
 comparison :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 comparison x = do
-                (t1, n1) <- numExpr x
+                (t1, n1) <- try (numExpr x) <|> stringExpr x
                 op <- comparisonOp
-                (t2, n2) <- numExpr x
+                (t2, n2) <- try (numExpr x) <|> stringExpr x
                 if x then return (t1 ++ [op] ++ t2,Just (eval (fromJust n1) op (fromJust n2)))
                 else return (t1 ++ [op] ++ t2, Nothing)
 

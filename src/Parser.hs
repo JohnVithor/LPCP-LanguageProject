@@ -33,7 +33,7 @@ globalVarCreations = try (do
 declaration :: ParsecT [Token] MyState IO [Token]
 declaration = do
         a <- beginScopeToken
-        b <- try structDeclaration <|> try functionCreation <|> subprogramCreation Nothing
+        b <- structDeclaration <|> subprogramCreation Nothing <|> functionCreation
         return (a:b)
 
 declarations :: ParsecT [Token] MyState IO [Token]

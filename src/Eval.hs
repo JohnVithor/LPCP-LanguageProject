@@ -72,13 +72,13 @@ eval (Type.Int x) (Greater _ ) (Type.Int y) = Type.Bool (x > y)
 eval (Type.Real x) (Greater _ ) (Type.Real y) = Type.Bool (x > y)
 eval (Type.Int x) (Greater _ ) (Type.Real y) = Type.Bool (fromIntegral x > y)
 eval (Type.Real x) (Greater _ ) (Type.Int y) = Type.Bool (x > fromIntegral y)
-eval _ _ _ = error "deu ruim"
+eval t1 op t2 = error ("A operação " ++ show op ++" não está definida para os tipos " ++ show t1 ++" e " ++ show t2)
 
 evalUni :: Token -> Type -> Type
 evalUni (Not _ ) (Type.Bool y) = Type.Bool (not y)
 evalUni (Minus _ ) (Type.Int y) = Type.Int (-y)
 evalUni (Minus _ ) (Type.Real y) = Type.Real (-y)
-evalUni _ _ = error "deu ruim"
+evalUni op t = error ("A operação " ++ show op ++" não está definida para o tipo " ++ show t)
 
 getStmts :: Subprogram -> [Token]
 getStmts (_, _, _, stmts) = stmts

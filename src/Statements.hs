@@ -24,20 +24,20 @@ structCreation x = do
 extractArgs :: [Maybe Type] -> [Type]
 extractArgs [] = []
 extractArgs ((Just t):others) = t:extractArgs others
-extractArgs (Nothing:_) = fail "deu ruim"
+extractArgs (Nothing:_) = fail "Não foi possivel obter argumentos válidos"
 
 initStruct :: Type -> [Type] -> Maybe Type
 initStruct (Type.Struct name params) oargs = initStructInner (Type.Struct name params) params oargs
-initStruct _ _ = fail "deu ruim outro caso de struct"
+initStruct _ _ = fail "Não foi possível inicializar a struct"
 
 
 initStructInner :: Type -> [(String,Type)] -> [Type] -> Maybe Type
 initStructInner (Type.Struct name trueParams) [] [] = Just (Type.Struct name trueParams)
 initStructInner (Type.Struct name trueParams) (param:params) (arg:oargs) = initStructInner (Type.Struct name (replaceArg trueParams param arg)) params oargs
-initStructInner _ _ _ = fail "deu ruim caso de struct"
+initStructInner _ _ _ = fail "Não foi possível inicializar a struct com todos os parametors esperados"
 
 replaceArg :: [(String,Type)] -> (String,Type) -> Type -> [(String,Type)]
-replaceArg [] _ _ = fail "deu ruim: argumento não encontrado"
+replaceArg [] (name, _) _ = fail ("Argumento esperado não foi encontrado: " ++ name)
 replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedName == name then
                 if compatible oldValue value then (name,value):trueArgs
                 else error ("tipos incompatíveis na inicialização da struct: " ++ show oldValue ++ " " ++ show value)
@@ -60,7 +60,7 @@ initialization x t = try (do
         (d, r) <- try (readStatement x) <|> try (structCreation x) <|> expression x
         if x then do
                 if compatible t (fromJust r) then return (c:d, r,(False,""))
-                else fail "tipos diferentes"
+                else fail ("Não são compatíveis: " ++ show t ++ " - " ++ show (fromJust r))
         else return (c:d, r,(False,"")))
         <|>
         (do
@@ -72,8 +72,9 @@ varCreation x = do
             b <- idToken
             (c, v, (rf,rp)) <- try (initialization x t)
             if x then
-                if not (compatible t (fromJust v)) then fail "tipos diferentes" else
-                        do
+                if not (compatible t (fromJust v)) then
+                        fail ("Não são compatíveis: " ++ show t ++ " - " ++ show (fromJust v))
+                        else do
                         -- o False abaixo é para constantes, no momento sem constantes
                         let var = (getIdData b, fromJust v, rf, False, rp)
                         updateState(symtableInsert var)
@@ -104,7 +105,7 @@ varAssignment x = try (do
                         let newValue = fromJust (initStructInner oldValue [(getIdData c,fromJust v)] [fromJust v])
                         updateState(symtableUpdate (key, newValue, refFlag, constFlag, refName))
                         return (a:b:c:e)
-                else fail "tipos diferentes"
+                else fail ("Não são compatíveis: " ++ show fieldValue ++ " - " ++ show (fromJust v))
         else do
                 (e, _, _) <- initialization x (Type.Bool False)
                 return (a:b:c:e)
@@ -119,7 +120,7 @@ varAssignment x = try (do
                         do
                         updateState(symtableUpdate (key, fromJust v, refFlag, constFlag, refName))
                         return (a:c)
-                else fail "tipos diferentes"
+                else fail ("Não são compatíveis: " ++ show oldValue ++ " - " ++ show (fromJust v))
         else do
                 (c, _, _) <- initialization x (Type.Bool False)
                 return (a:c)
@@ -141,22 +142,30 @@ destroyCall _ = do
         return (a : [b])
 
 statements :: Bool -> ParsecT [Token] MyState IO [Token]
-statements x = try (do
+statements x = (do
         c <- statement x
-        d <- semiColonToken
-        e <- statements x
-        return (c++[d]++e))
-        <|> return []
+        d <- semiColonToken <|> anyToken 
+        if isSemiColon d then do
+                e <- statements x
+                return (c++[d]++e)
+        else do
+                liftIO (print c)
+                liftIO (print d)
+
+                error "Não está faltando um ';' ?"
+        ) <|> return []
+
+isSemiColon :: Token -> Bool 
+isSemiColon (SemiColon _) = True 
+isSemiColon _ = False
 
 statement :: Bool -> ParsecT [Token] MyState IO [Token]
 statement x =
-        try (ifConditional x)
-        <|> try (printStatement x)
-        <|> try (whileLoop x)
-        <|> try (varCreations x)
-        <|> try (varAssignment x)
-        -- <|> try (readStatement x)
-        -- <|> try (loop x)
+        printStatement x
+        <|> varAssignment x
+        <|> varCreation x
+        <|> try (ifConditional x)
+        <|> whileLoop x
         -- <|> try (procedureCall x)
         -- <|> try (returnCall x)
         -- <|> try (destroyCall x)
