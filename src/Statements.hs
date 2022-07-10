@@ -10,7 +10,7 @@ import Declarations
 import Expressions
 import GHC.IO.Unsafe (unsafePerformIO)
 
-structCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type, (Bool,String))
+structCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 structCreation x = do
         a <- idToken
         s <- getState
@@ -19,26 +19,26 @@ structCreation x = do
         (f,vs) <- args x
         d <- endExpressionToken
         if x then do
-                return (a:b:f++[d], initStruct ty (extractTypes vs),(False,""))
-        else return (a:b:f++ [d], Nothing,(False,"") )
+                return (a:b:f++[d], initStruct ty (extractTypes vs))
+        else return (a:b:f++ [d], Nothing )
 
 extractTypes :: [Maybe Type] -> [Type]
 extractTypes [] = []
 extractTypes ((Just t):others) = t:extractTypes others
-extractTypes (Nothing:_) = fail "Não foi possivel obter argumentos válidos"
+extractTypes (Nothing:_) = error "Não foi possivel obter argumentos válidos"
 
 initStruct :: Type -> [Type] -> Maybe Type
 initStruct (Type.Struct name params) oargs = initStructInner (Type.Struct name params) params oargs
-initStruct _ _ = fail "Não foi possível inicializar a struct"
+initStruct _ _ = error "Não foi possível inicializar a struct"
 
 
 initStructInner :: Type -> [(String,Type)] -> [Type] -> Maybe Type
 initStructInner (Type.Struct name trueParams) [] [] = Just (Type.Struct name trueParams)
 initStructInner (Type.Struct name trueParams) (param:params) (arg:oargs) = initStructInner (Type.Struct name (replaceArg trueParams param arg)) params oargs
-initStructInner _ _ _ = fail "Não foi possível inicializar a struct com todos os parametors esperados"
+initStructInner a b c = error ("Não foi possível inicializar a struct com todos os parametors esperados: \n" ++ show a ++ " " ++ show b ++ " " ++ show c)
 
 replaceArg :: [(String,Type)] -> (String,Type) -> Type -> [(String,Type)]
-replaceArg [] (name, _) _ = fail ("Argumento esperado não foi encontrado: " ++ name)
+replaceArg [] (name, _) _ = error ("Argumento esperado não foi encontrado: " ++ name)
 replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedName == name then
                 if compatible oldValue value then (name,value):trueArgs
                 else error ("tipos incompatíveis na inicialização da struct: " ++ show oldValue ++ " " ++ show value)
@@ -46,50 +46,58 @@ replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedN
 
 args :: Bool -> ParsecT [Token] MyState IO ([Token], [Maybe Type])
 args x = try (do
-        (a, v,_) <- try(structCreation x) <|> expression x
+        (a, v) <- try(structCreation x) <|> expression x
         b <- commaToken
         (c, vs) <- args x
         return (a++b:c, v:vs))
         <|> do
-        (a,v,_) <- try(structCreation x) <|> expression x
+        (a,v) <- try(structCreation x) <|> expression x
         return (a, [v])
 
-initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type, (Bool,String))
- -- O par (Bool,String) indica se é ou não uma ref e qual a key da ref, no momento não temos ref
-initialization x t = try (do
+initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+initialization x t = (do
         c <- assignToken
-        (d, r, (f,n)) <- try(structCreation x) <|> expression x <|> readStatement x <|> createInit x
-        if x then do
-                if compatible t (fromJust r) then return (c:d, r,(f,n))
-                else fail ("Não são compatíveis: " ++ show t ++ " - " ++ show (fromJust r))
-        else return (c:d, r,(False,"")))
+        (d, r) <- refInitialization x <|> try(structCreation x) <|> expression x <|> readStatement x <|> createInit x
+        return (c:d, r))
         <|>
         (do
-        return ([],Just t,(False,"")))
+        return ([],Just t))
 
-createInit :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type, (Bool,String))
+refInitialization :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+refInitialization x = do
+        a <- refToken 
+        (d, r) <- getVar x True
+        liftIO (print a)
+        if x then do
+                let v = fromJust r
+                if isRefType v then return (a:d, Just v)
+                else error ("Não é do Tipo Ref!: " ++ show v)
+        else return (a:d, Nothing )
+
+
+createInit :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 createInit x = do
         a <- createToken 
-        (b, r,_) <- try(structCreation x) <|> expression x
+        (b, r) <- dataType 
         if x then do
                 s <- getState
                 let name = "heap."++show (getHeapId s)
-                updateState (symtableInsertInner (name, fromJust r, False, False, ""))
-                return (a:b, r,(True,name))
-        else return (a:b, r,(False,""))
+                updateState (symtableInsertInner (name, r, False))
+                return (a:b, Just (Type.Ref (getTypeName r) name))
+        else return (a:b, Nothing)
 
 
 varCreation :: Bool -> ParsecT [Token] MyState IO [Token]
 varCreation x = do
             (a, t) <- dataType
             b <- idToken
-            (c, v, (rf,rp)) <- try (initialization x t)
+            (c, v) <- initialization x t
             if x then
                 if not (compatible t (fromJust v)) then
-                        fail ("Não são compatíveis: " ++ show t ++ " - " ++ show (fromJust v))
+                        error ("Não são compatíveis: " ++ show t ++ " - " ++ show (fromJust v))
                 else do
                         -- o False abaixo é para constantes, no momento sem constantes
-                        let var = (getIdData b, fromJust v, rf, False, rp)
+                        let var = (getIdData b, fromJust v, False)
                         updateState(symtableInsert var)
                         return (a++[b]++c)
                 else
@@ -108,37 +116,75 @@ varAssignment x = do
         a <- idToken
         s <- getState
         if x then do
-                let (key, oldValue, _, constFlag, _) = symtableGet (getIdData a) s
+                let (key, oldValue, constFlag) = symtableGetVar (getIdData a) s
                 (b, st, ns, ov) <- dotAccess x (Just oldValue)
                 if constFlag then error "Não se pode alterar uma constante"
                 else do
-                        (c, v, (rf,rp)) <- initialization x (fromJust ov)
-                        -- o que fazer com esses valores de ref e sua key? são permitidos?
-                        if compatible (fromJust ov) (fromJust v) then
-                                do
-                                let nv = updateStructs (extractTypes st) ns (fromJust v)
-                                let var = (key, nv, rf, False, rp)
-                                updateState(symtableUpdate var)
-                                return (a:b++c)
-                        else fail ("Não são compatíveis: " ++ show oldValue ++ " - " ++ show (fromJust v))
+                        (c, v) <- initialization x (fromJust ov)
+                        if isRefType oldValue then do
+                                if compatible (fromJust ov) (fromJust v) then
+                                        do
+                                        nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
+                                        let var = (key, oldValue, constFlag)
+                                        updateState(symtableUpdate True nv var) 
+                                        return (a:b++c)
+                                else if ifRefOf (fromJust ov) (fromJust v) then
+                                        do
+                                        nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
+                                        let var = (key, oldValue, False)
+                                        updateState(symtableUpdate True nv var)
+                                        return (a:b++c)                                
+                                else error ("Não são compatíveis: " ++ show oldValue ++ " - " ++ show (fromJust v))
+                        else do 
+                                if compatible (fromJust ov) (fromJust v) then
+                                        do
+                                        nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
+                                        let var = (key, nv, False)
+                                        updateState(symtableUpdate False nv var) 
+                                        return (a:b++c)
+                                else if ifRefOf (fromJust ov) (fromJust v) then
+                                        do
+                                        nv <- updateStructs (extractTypes st) ns (fromJust ov) (fromJust v)
+                                        let var = (key, nv, False)
+                                        updateState(symtableUpdate True nv var)
+                                        return (a:b++c)                                                
+                                else error ("Não são compatíveis: " ++ show oldValue ++ " - " ++ show (fromJust v))
         else do
                 (b, _, _, _) <- dotAccess x Nothing
-                (c, _, _) <- initialization x (Type.Bool False)
+                (c, _) <- initialization x (Type.Bool False)
                 return (a:b++c)
 
-updateStructs :: [Type] -> [String] -> Type -> Type
-updateStructs [] [] v = v
-updateStructs (st:ss) (name:ts) v = fromJust (initStructInner st [(name,nv)] [nv])
-        where nv = updateStructs ss ts v
-updateStructs a b c = error ("debug: "++show a++" "++show b++" "++show c)
+updateStructs :: [Type] -> [String] -> Type -> Type-> ParsecT [Token] MyState IO Type
+updateStructs [] [] _ v = do 
+        return v
+updateStructs (st:ss) (name:ts) ref v = do 
+        nv <- updateStructs ss ts ref v
+        let t = getStructField st name 
+        if isRefType t then do
+                if isRefType nv then do
+                        let a = updateStruct st (name,nv) nv
+                        return a
+                else do
+                        let var = (getRefKey t, t, False)
+                        updateState(symtableUpdate True nv var)
+                        let a = updateStruct st (name,t) t
+                        return a
+        else do 
+                let a = updateStruct st (name,nv) nv
+                return a
+updateStructs a b c d = error ("debug: "++show a++" "++show b++" "++show c++" "++show d)
 
 
+updateStruct :: Type -> (String, Type) -> Type -> Type
+updateStruct (Type.Struct name trueParams) (pName, pValue) nValue
+         = Type.Struct name (replaceArg trueParams (pName, pValue) nValue)
+updateStruct _ _ _ = error "deu ruim"         
 
 returnCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 returnCall x = do
         -- TODO: pensar em como voltar para o lugar que chamou a função e devolver esse valor
         a <- returnToken
-        (tk, tp,_) <- expression x
+        (tk, tp) <- expression x
         return (a:tk,tp)
         -- expression
 
@@ -152,7 +198,7 @@ destroyCall _ = do
 statements :: Bool -> ParsecT [Token] MyState IO [Token]
 statements x = (do
         c <- statement x
-        d <- semiColonToken <|> anyToken 
+        d <- semiColonToken
         s <- getState
         liftIO (print (getSymbolTbl s))
         e <- statements x
@@ -186,7 +232,7 @@ printStatement :: Bool -> ParsecT [Token] MyState IO [Token]
 printStatement x = do
         a <- printToken
         b <- beginExpressionToken
-        (c, v,_) <- expression x
+        (c, v) <- expression x
         d <- endExpressionToken
         if x then do
                 liftIO (printVal (fromJust v))
@@ -194,11 +240,11 @@ printStatement x = do
                 return (a:b:c++[d])
         else return (a:b:c++[d])
 
-readStatement :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type,(Bool,String))
+readStatement :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 readStatement x = do
         a <- readToken
-        if x then return ([a], Just (Type.String (unsafePerformIO getLine)),(False,""))
-        else return ([a], Nothing,(False,""))
+        if x then return ([a], Just (Type.String (unsafePerformIO getLine)))
+        else return ([a], Nothing)
 
 
 -- <conditional> := begin if ( <logic_expression> ): <statements> end if

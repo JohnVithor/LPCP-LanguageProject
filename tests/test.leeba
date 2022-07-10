@@ -1,17 +1,12 @@
-begin struct Fraction:
-    int num;
-    int dem;
-end Fraction;
-
-begin struct Pair:
-    Fraction x;
-    Fraction y;
-end Pair;
+begin struct Node: 
+    ref Node next;
+    int value;
+end Node;
 
 begin int main():
-    Fraction x = Fraction(1,2);
-    Fraction y = Fraction(2,4);
-    Pair a = Pair(x,y);
-    a.x.num = 90;
-    print(a.x.num);
+    ref Node n1 = create Node;
+    ref Node n2 = create Node;
+    n1.next = ref n2;
+    n2.value = 4;
+    print(n1.next.value);
 end main;

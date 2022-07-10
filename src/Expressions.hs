@@ -10,21 +10,21 @@ import Eval
 --TODO: campos de structs, acesso a array, chamada de função, casting 
 
 -- Parser geral de expressões
-expression :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type, (Bool,String))
+expression :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 expression x = try (do
                 (a,r) <- numExpr x
-                return (a,r,(False,"")))
+                return (a,r))
         <|> try (do
                 (a,r) <- logExpr x
-                return (a,r,(False,"")))
+                return (a,r))
         <|> try (do
                 (a,r) <- stringExpr x
-                return (a,r,(False,"")))
+                return (a,r))
         <|> ( do 
                 a <- castingToken
-                (b, v, fn) <- expression x
-                if x then return (a:b, Just (cast a (fromJust v)),fn)
-                else return (a:b, Nothing,fn)
+                (b, v) <- expression x
+                if x then return (a:b, Just (cast a (fromJust v)))
+                else return (a:b, Nothing)
         )
 
 castingToken :: ParsecT [Token] u IO Token
@@ -71,7 +71,7 @@ numFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 numFactor x = try (do
                 (tk,tp) <- intToken <|> realToken
                 return ([tk], Just tp)
-                ) <|> try (getVar x) <|> (do
+                ) <|> try (getVar x False) <|> (do
                 a <- beginExpressionToken
                 (tk,tp) <- numExpr x
                 c <- endExpressionToken
@@ -116,7 +116,7 @@ logFactor x =   try (do
                 ) <|> try (do
                 (tk,tp) <- boolToken
                 return ([tk], Just tp)
-                ) <|> try (getVar x) <|> try (do
+                ) <|> try (getVar x False) <|> try (do
                 a <- beginExpressionToken
                 (tk,tp) <- logExpr x
                 c <- endExpressionToken
@@ -126,14 +126,19 @@ logFactor x =   try (do
                 -- IN
                 -- IS
 
-getVar :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-getVar x = try (do
+getVar :: Bool -> Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+getVar x y = try (do
         a <- idToken
         s <- getState
         if x then do
-                let (_, oldValue, _, _, _) = symtableGet (getIdData a) s
-                (_, _, _, ov) <- dotAccess x (Just oldValue)
-                return ([a], ov)
+                if y then do 
+                        let (_, oldValue, _) = symtableGetVar (getIdData a) s
+                        (_, _, _, ov) <- dotAccess x (Just oldValue)
+                        return ([a], ov)
+                else do
+                        let (_, oldValue, _) = symtableGetValue (getIdData a) s
+                        (_, _, _, ov) <- dotAccess x (Just oldValue)
+                        return ([a], ov)
         else do
                 (b, _, _, _) <- dotAccess x Nothing
                 return (a:b,Nothing)
@@ -145,9 +150,17 @@ dotAccess x v = (do
         c <- idToken
         if x then do
                 let name = getIdData c
-                let fieldValue = getStructField (fromJust v) name
-                (d, s, ns, vv) <- dotAccess x (Just fieldValue)
-                return ([b,c]++d, v:s, name:ns, vv)
+                let tv = fromJust v
+                if isRefType (fromJust v) then do
+                        s <- getState
+                        let (refName,refV,_) = symtableGetInner2 (getRefKey tv) (getSymbolTbl s)
+                        let fieldValue = getStructField refV name
+                        (d, sts, ns, vv) <- dotAccess x (Just fieldValue)
+                        return ([b,c]++d, Just refV:sts, name:ns, vv)
+                else do
+                        let fieldValue = getStructField tv name
+                        (d, s, ns, vv) <- dotAccess x (Just fieldValue)
+                        return ([b,c]++d, v:s, name:ns, vv)
         else do
                 (d, s, ns, vv) <- dotAccess x v
                 return ([b,c]++d, v:s, "":ns, vv)
@@ -189,4 +202,4 @@ stringFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 stringFactor x = try (do 
                 (tk, tp) <- stringToken <|> charToken
                 return ([tk], Just tp))
-               <|> getVar x
+               <|> getVar x False

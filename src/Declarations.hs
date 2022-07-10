@@ -35,11 +35,24 @@ fieldCreation = do
             return (a++b:[c],(getIdData b, t))
 
 dataType :: ParsecT [Token] MyState IO ([Token],Type)
-dataType = do
+dataType = refDataType <|> do
         s <- getState
         t <- typeToken <|> idToken
         (r, v) <- listType (typeTableGet t s)
         return (t:r, v)
+
+refDataType :: ParsecT [Token] MyState IO ([Token],Type)
+refDataType = do
+        s <- getState
+        r <- refToken 
+        t <- typeToken <|> idToken
+        -- (ts, v) <- listType (typeTableGet t s)
+        return (r:[t], Type.Ref (getNameOfThat t) "")
+
+getNameOfThat :: Token -> String 
+getNameOfThat (Type _ x) = x
+getNameOfThat (Id _ x) = x
+getNameOfThat _ = error "Não é válido"
 
 listType :: Type -> ParsecT [Token] MyState IO ([Token],Type)
 listType t = try (do

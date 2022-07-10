@@ -5,9 +5,10 @@ import Type
 import Data.List
 
 type Subprogram = (String, Maybe Type, [(String, Type)], [Token])
-type MyState = ([(String,Type,Bool,Bool,String)], [Type], [Subprogram], Int, String)
+type SymTable = (String,Type,Bool)
+type MyState = ([SymTable], [Type], [Subprogram], Int, String)
 
-getSymbolTbl:: MyState -> [(String,Type,Bool,Bool,String)]
+getSymbolTbl:: MyState -> [SymTable]
 getSymbolTbl (ty, _, _, _, _) = ty
 
 getMainFunc :: MyState -> Subprogram
@@ -65,67 +66,78 @@ exitScope (t, ty, programs,count,func) = (t, ty, programs,count-1,func)
 cleanVarsScope :: MyState -> MyState
 cleanVarsScope (t, ty, programs,count,func) = (removeVarsInScope (func++"."++show count) t, ty, programs, count, func)
 
-removeVarsInScope :: String -> [(String, Type, Bool, Bool, String)] -> [(String, Type, Bool, Bool, String)]
+removeVarsInScope :: String -> [SymTable] -> [SymTable]
 removeVarsInScope _ [] = []
-removeVarsInScope prefix ((key, value, refFlag, constFlag, refName):t)
+removeVarsInScope prefix ((key, value, constFlag):t)
     | prefix `isPrefixOf` key = removeVarsInScope prefix t
-    | otherwise = (key, value, refFlag, constFlag, refName):removeVarsInScope prefix t
+    | otherwise = (key, value, constFlag):removeVarsInScope prefix t
 
 callFunc :: String -> MyState -> MyState
 callFunc name (t, ty, ref,count,_) = (t, ty, ref,count,name)
 
-symtableGet :: String -> MyState -> (String,Type,Bool,Bool,String)
-symtableGet name (t, _, _,count,func) = symtableGetInner (func,count,name) t t
+symtableGetValue :: String -> MyState -> SymTable
+symtableGetValue name (t, _, _,count,func) = symtableGetInner (func,count,name) t t
 
-symtableGetInner :: (String,Int,String) -> [(String,Type,Bool,Bool,String)] -> [(String,Type,Bool,Bool,String)] -> (String,Type,Bool,Bool,String)
-symtableGetInner (scope,count,name) ((key2, value, flag, const1, ref):t) backup
-    | flag = if key == key2 then symtableGetInner2 ref backup
+symtableGetVar :: String -> MyState -> SymTable
+symtableGetVar name (t, _, _,count,func) = symtableGetInner3 (func,count,name) t t
+
+symtableGetInner :: (String,Int,String) -> [SymTable] -> [SymTable] -> SymTable
+symtableGetInner (scope,count,name) ((key2, value, const1):t) backup
+    | isRefType value = if key == key2 then symtableGetInner2 (getRefKey value) backup
                              else symtableGetInner (scope,count,name) t backup
-    | otherwise = if key == key2 then (key2, value, flag, const1, ref)
+    | otherwise = if key == key2 then (key2, value, const1)
                              else symtableGetInner (scope,count,name) t backup
     where key = scope++"."++show count++"."++name
 symtableGetInner (scope,count,name) [] backup =
     if count > 0 then symtableGetInner (scope,count-1,name) backup backup
     else error ("Variável não encontrada: " ++ name)
 
-symtableGetInner2 :: String  -> [(String,Type,Bool,Bool,String)] -> (String,Type,Bool,Bool,String)
-symtableGetInner2 key ((key2, value, flag, const1,ref):t) =
-    if key == key2 then (key2, value, flag, const1,ref)
+symtableGetInner2 :: String  -> [SymTable] -> SymTable
+symtableGetInner2 key ((key2, value, const1):t) =
+    if key == key2 then (key2, value, const1)
     else symtableGetInner2 key t
 symtableGetInner2 _ [] = error "Referencia não encontrada"
 
+symtableGetInner3 :: (String,Int,String) -> [SymTable] -> [SymTable] -> SymTable
+symtableGetInner3 (scope,count,name) ((key2, value, const1):t) backup
+    = if key == key2 then (key2, value, const1)
+                             else symtableGetInner3 (scope,count,name) t backup
+    where key = scope++"."++show count++"."++name
+symtableGetInner3 (scope,count,name) [] backup =
+    if count > 0 then symtableGetInner3 (scope,count-1,name) backup backup
+    else error ("Variável não encontrada: " ++ name)
 
-symtableInsert :: (String,Type,Bool,Bool,String) -> MyState -> MyState
-symtableInsert (name, value, ref, const1, othername) (symtable, t, subs,count, func) = symtableInsertInner (func++"."++show count++"."++name, value, ref, const1, othername) (symtable, t, subs,count, func)
+symtableInsert :: SymTable -> MyState -> MyState
+symtableInsert (name, value, const1) (symtable, t, subs,count, func) = symtableInsertInner (func++"."++show count++"."++name, value, const1) (symtable, t, subs,count, func)
 
 
-symtableInsertInner :: (String,Type,Bool,Bool,String) -> MyState -> MyState
+symtableInsertInner :: SymTable -> MyState -> MyState
 symtableInsertInner symbol ([], t, subs,count, func) = ([symbol], t, subs,count, func)
 symtableInsertInner symbol (symtable, t, subs,count, func) = (symbol:symtable, t, subs,count, func)
 
-symtableUpdate :: (String,Type,Bool,Bool,String) -> MyState -> MyState
-symtableUpdate tok (sym, ty, subs ,count, func) = (symtableUpdateInner tok sym, ty, subs,count,func)
+symtableUpdate :: Bool -> Type -> SymTable -> MyState -> MyState
+symtableUpdate x refVal tok (sym, ty, subs ,count, func) = (symtableUpdateInner x refVal tok sym, ty, subs,count,func)
 
-symtableUpdateInner :: (String,Type,Bool,Bool,String) -> [(String,Type,Bool,Bool,String)] -> [(String,Type,Bool,Bool,String)]
-symtableUpdateInner _ [] = fail "variable not found"
-symtableUpdateInner (name, value, ref, const1, othername) ((name2, value2, ref2, const2, othername2):t)
-    | const1 = fail "Não se pode modificar uma constante"
-    | ref =         if othername == name2 then (name2, value, ref2, const2, othername2):t
-                    else (name2, value2, ref2, const2,othername2) : symtableUpdateInner (name, value, ref, const1, othername) t
-    | otherwise =   if name == name2 then (name, value, ref, const1, othername):t
-                    else (name2, value2, ref2, const2,othername2) : symtableUpdateInner (name, value, ref, const1, othername) t
+symtableUpdateInner :: Bool -> Type -> SymTable -> [SymTable] -> [SymTable]
+symtableUpdateInner _ _ (name, _, _) [] = error ("Variável não encontrada: " ++ name)
+symtableUpdateInner x refVal (name, value, const1) ((name2, value2, const2):t)
+    | const1 = error "Não se pode modificar uma constante"
+    | x =   if getRefKey value == name2 then (name2, refVal, const2):t
+            else (name2, value2, const2) : symtableUpdateInner x refVal (name, value, const1) t
+    | otherwise =   if name == name2 then (name, value, const1):t
+                    else (name2, value2, const2) : symtableUpdateInner x refVal (name, value, const1) t
 
-symtableRemove :: (String,Type,Bool,Bool,String) -> [(String,Type,Bool,Bool,String)] -> [(String,Type,Bool,Bool,String)]
-symtableRemove _ [] = fail "variable not found"
-symtableRemove (name, value, ref, const1, othername) ((name2, value2, ref2, const2, othername2):t) =
+symtableRemove :: SymTable -> [SymTable] -> [SymTable]
+symtableRemove (name, _, _) [] = error ("Variável não encontrada: " ++ name)
+symtableRemove (name, value, const1) ((name2, value2, const22):t) =
     if name == name2 then t
-    else (name2, value2, ref2, const2, othername2) : symtableRemove (name, value, ref, const1, othername) t
+    else (name2, value2, const22) : symtableRemove (name, value, const1) t
 
 getHeapId :: MyState -> Int 
 getHeapId (ty, _, _, _, _) = getHeapIdInner 0 ty
 
-getHeapIdInner :: Int -> [(String,Type,Bool,Bool,String)] -> Int
+getHeapIdInner :: Int -> [SymTable] -> Int
 getHeapIdInner idt [] = idt
-getHeapIdInner idt ((key, _, _, _, _):t)
+getHeapIdInner idt ((key, _, _):t)
     | "heap." `isPrefixOf` key = getHeapIdInner (idt+1) t
     | otherwise = getHeapIdInner idt t
