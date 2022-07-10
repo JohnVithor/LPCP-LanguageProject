@@ -1,4 +1,17 @@
+begin struct Fraction:
+    int num;
+    int dem;
+end Fraction;
+
+begin struct Pair:
+    Fraction x;
+    Fraction y;
+end Pair;
 
 begin int main():
-    print("r"+"r");
+    Fraction x = Fraction(1,2);
+    Fraction y = Fraction(2,4);
+    Pair a = Pair(x,y);
+    a.x.num = 90;
+    print(a.x.num);
 end main;

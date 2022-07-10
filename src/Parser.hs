@@ -72,6 +72,7 @@ program = do
         setInput (getStmts (getMainFunc s))
         updateState (callFunc "main")
         _ <- statements True
+        updateState cleanVarsScope
         -- s <- getState
         -- liftIO(print s)
         return []

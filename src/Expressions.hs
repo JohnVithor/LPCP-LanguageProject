@@ -10,14 +10,21 @@ import Eval
 --TODO: campos de structs, acesso a array, chamada de função, casting 
 
 -- Parser geral de expressões
-expression :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
-expression x = try (numExpr x)
-        <|> try (logExpr x)
-        <|> try (stringExpr x)
+expression :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type, (Bool,String))
+expression x = try (do
+                (a,r) <- numExpr x
+                return (a,r,(False,"")))
+        <|> try (do
+                (a,r) <- logExpr x
+                return (a,r,(False,"")))
+        <|> try (do
+                (a,r) <- stringExpr x
+                return (a,r,(False,"")))
         <|> ( do 
                 a <- castingToken
-                (b, v) <- expression x
-                if x then return (a:b, Just (cast a (fromJust v))) else return (a:b, Nothing)
+                (b, v, fn) <- expression x
+                if x then return (a:b, Just (cast a (fromJust v)),fn)
+                else return (a:b, Nothing,fn)
         )
 
 castingToken :: ParsecT [Token] u IO Token
@@ -122,23 +129,30 @@ logFactor x =   try (do
 getVar :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 getVar x = try (do
         a <- idToken
-        b <- dotToken
-        c <- idToken
         s <- getState
         if x then do
                 let (_, oldValue, _, _, _) = symtableGet (getIdData a) s
-                let fieldValue = getStructField oldValue (getIdData c)
-                return (a:b:[c], Just fieldValue)
-        else return (a:b:[c],Nothing)
-        ) <|> try (do
-        a <- idToken
-        s <- getState
-        if x then do
-                let (_, oldValue, _, _, _) = symtableGet (getIdData a) s
-                return ([a], Just oldValue)
-        else return ([a],Nothing)
+                (_, _, _, ov) <- dotAccess x (Just oldValue)
+                return ([a], ov)
+        else do
+                (b, _, _, _) <- dotAccess x Nothing
+                return (a:b,Nothing)
         )
 
+dotAccess :: Bool -> Maybe Type -> ParsecT [Token] MyState IO ([Token], [Maybe Type], [String] ,Maybe Type)
+dotAccess x v = (do
+        b <- dotToken
+        c <- idToken
+        if x then do
+                let name = getIdData c
+                let fieldValue = getStructField (fromJust v) name
+                (d, s, ns, vv) <- dotAccess x (Just fieldValue)
+                return ([b,c]++d, v:s, name:ns, vv)
+        else do
+                (d, s, ns, vv) <- dotAccess x v
+                return ([b,c]++d, v:s, "":ns, vv)
+        ) <|> do
+                return ([],[],[],v)
 
 -- Os operadores '==' e '!=' podem trabalhar com strings
 -- Utilizei apenas numExpr nos trys desses dois operadores

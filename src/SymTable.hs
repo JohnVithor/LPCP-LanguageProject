@@ -2,9 +2,13 @@ module SymTable where
 
 import Lexer
 import Type
+import Data.List
 
 type Subprogram = (String, Maybe Type, [(String, Type)], [Token])
 type MyState = ([(String,Type,Bool,Bool,String)], [Type], [Subprogram], Int, String)
+
+getSymbolTbl:: MyState -> [(String,Type,Bool,Bool,String)]
+getSymbolTbl (ty, _, _, _, _) = ty
 
 getMainFunc :: MyState -> Subprogram
 getMainFunc (_, _, subs, _, _) =  getMainFuncInner subs
@@ -53,10 +57,19 @@ getDefaultValue (Type _ "bool") = Type.Bool True
 getDefaultValue _ = error "Is not a Type Token"
 
 enterScope :: MyState -> MyState
-enterScope (t, ty, ref,count,func) = (t, ty, ref,count+1,func)
+enterScope (t, ty, programs,count,func) = (t, ty, programs,count+1,func)
 
 exitScope :: MyState -> MyState
-exitScope (t, ty, ref,count,func) = (t, ty, ref,count-1,func)
+exitScope (t, ty, programs,count,func) = (t, ty, programs,count-1,func)
+
+cleanVarsScope :: MyState -> MyState
+cleanVarsScope (t, ty, programs,count,func) = (removeVarsInScope (func++"."++show count) t, ty, programs, count, func)
+
+removeVarsInScope :: String -> [(String, Type, Bool, Bool, String)] -> [(String, Type, Bool, Bool, String)]
+removeVarsInScope _ [] = []
+removeVarsInScope prefix ((key, value, refFlag, constFlag, refName):t)
+    | prefix `isPrefixOf` key = removeVarsInScope prefix t
+    | otherwise = (key, value, refFlag, constFlag, refName):removeVarsInScope prefix t
 
 callFunc :: String -> MyState -> MyState
 callFunc name (t, ty, ref,count,_) = (t, ty, ref,count,name)
@@ -71,7 +84,7 @@ symtableGetInner (scope,count,name) ((key2, value, flag, const1, ref):t) backup
     | otherwise = if key == key2 then (key2, value, flag, const1, ref)
                              else symtableGetInner (scope,count,name) t backup
     where key = scope++"."++show count++"."++name
-symtableGetInner (scope,count,name) [] backup = 
+symtableGetInner (scope,count,name) [] backup =
     if count > 0 then symtableGetInner (scope,count-1,name) backup backup
     else error ("Variável não encontrada: " ++ name)
 
@@ -107,3 +120,12 @@ symtableRemove _ [] = fail "variable not found"
 symtableRemove (name, value, ref, const1, othername) ((name2, value2, ref2, const2, othername2):t) =
     if name == name2 then t
     else (name2, value2, ref2, const2, othername2) : symtableRemove (name, value, ref, const1, othername) t
+
+getHeapId :: MyState -> Int 
+getHeapId (ty, _, _, _, _) = getHeapIdInner 0 ty
+
+getHeapIdInner :: Int -> [(String,Type,Bool,Bool,String)] -> Int
+getHeapIdInner idt [] = idt
+getHeapIdInner idt ((key, _, _, _, _):t)
+    | "heap." `isPrefixOf` key = getHeapIdInner (idt+1) t
+    | otherwise = getHeapIdInner idt t

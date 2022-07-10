@@ -1,0 +1,40 @@
+begin int main():
+	real M0[][];
+	real M1[][];
+	// ler dados
+	int i = 0;
+	int j = 0;
+	int k = 0;
+	int M0_len;
+	int M1_len;
+	real M_sum[][];
+	real M_prod[][];
+	real prod_sum;
+	begin while (i < M0_len):
+		begin while (j < M1_len):
+			prod_sum = 0;
+			M_sum[i][j] = M0[i][j] + M1[i][j];
+			begin while (i < M0_len):
+				prod_sum = prod_sum + M0[i][k]*M1[k][j];
+			end while;
+			M_prod[i][j] = prod_sum;
+		end while;
+	end while;
+	print("Soma: ");
+	begin while (i < M0_len):
+		begin while (j < M1_len):
+			print(M_sum[i][j]);
+		end while;
+	end while;
+	
+	begin if (M0_len != M1_len;):
+		print("impossivel multiplicar")
+	end if;
+	begin else:
+		begin while (i < M0_len):
+			begin while (j < M1_len):
+				print(M_prod[i][j]);
+			end while;
+		end while;
+	end else;
+end main;

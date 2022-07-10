@@ -1,12 +1,13 @@
 module Type where
 
-data Type = Bool Bool        | 
-            Int Int          |
-            Real Double      | 
-            Char Char        | 
-            String String    |
-            List Type [Type] |
-            Struct String [(String, Type)]
+data Type = Bool Bool                       | 
+            Int Int                         |
+            Real Double                     | 
+            Char Char                       | 
+            String String                   |
+            List Type [Type]                |
+            Struct String [(String, Type)]  |
+            Ref Type String
             deriving (Eq,Show)
 
 
@@ -32,6 +33,7 @@ printVal (Type.Struct name ((_,v):vs)) = do
                 printVal v
                 printVals vs
                 putStr ")"
+printVal (Type.Ref v ref) = putStr (ref++"["++show v++"]")
                 
 printVals ::[(String, Type)] -> IO()
 printVals ((_,v):vs) = do

@@ -248,12 +248,17 @@ elseToken = tokenPrim show updatePos get_token where
 
 refToken :: ParsecT [Token] u IO Token
 refToken = tokenPrim show updatePos get_token where
-  get_token (Ref p) = Just (Ref p)
+  get_token (Lexer.Ref p) = Just (Lexer.Ref p)
   get_token _      = Nothing
 
 returnToken :: ParsecT [Token] u IO Token
 returnToken = tokenPrim show updatePos get_token where
   get_token (Return p) = Just (Return p)
+  get_token _      = Nothing
+
+createToken :: ParsecT [Token] u IO Token
+createToken = tokenPrim show updatePos get_token where
+  get_token (Create p) = Just (Create p)
   get_token _      = Nothing
 
 destroyToken :: ParsecT [Token] u IO Token
