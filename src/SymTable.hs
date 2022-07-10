@@ -133,6 +133,15 @@ symtableRemove (name, value, const1) ((name2, value2, const22):t) =
     if name == name2 then t
     else (name2, value2, const22) : symtableRemove (name, value, const1) t
 
+symtableRemoveRef :: String -> MyState -> MyState
+symtableRemoveRef key (symtable, t, subs,count, func) =  (symtableRemoveRefInner key symtable, t, subs,count, func)
+
+symtableRemoveRefInner :: String -> [SymTable] -> [SymTable]
+symtableRemoveRefInner key [] = error ("Variável não encontrada: " ++ key)
+symtableRemoveRefInner key ((name2, value2, const22):t) =
+    if key == name2 then t
+    else (name2, value2, const22) : symtableRemoveRefInner key t
+
 getHeapId :: MyState -> Int 
 getHeapId (ty, _, _, _, _) = getHeapIdInner 0 ty
 

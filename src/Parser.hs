@@ -9,7 +9,6 @@ import Statements
 import Declarations
 import Subprograms
 import Eval
-import Control.Monad.IO.Class
 
 globalVars :: ParsecT [Token] MyState IO [Token]
 globalVars = try (do

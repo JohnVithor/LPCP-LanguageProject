@@ -13,7 +13,7 @@ structDeclaration = do
             (e, fields) <- fieldCreations
             f <- endScopeToken
             g <- idToken
-            if getIdData c /= getIdData g then fail "Nome da struct não é o mesmo"
+            if getIdData c /= getIdData g then error "Nome da struct não é o mesmo"
             else
                 do
                 h <- semiColonToken
@@ -43,7 +43,6 @@ dataType = refDataType <|> do
 
 refDataType :: ParsecT [Token] MyState IO ([Token],Type)
 refDataType = do
-        s <- getState
         r <- refToken 
         t <- typeToken <|> idToken
         -- (ts, v) <- listType (typeTableGet t s)

@@ -189,18 +189,25 @@ returnCall x = do
         -- expression
 
 destroyCall :: Bool -> ParsecT [Token] MyState IO [Token]
-destroyCall _ = do
+destroyCall x = do
         a <- destroyToken
-        b <- idToken
-        -- TODO: remover id da heap
-        return (a : [b])
+        b <- beginExpressionToken 
+        c <- idToken
+        d <- endExpressionToken 
+        if x then do
+                s <- getState 
+                let (_, val, _) = symtableGetVar (getIdData c) s
+                updateState (symtableRemoveRef (getRefKey val))
+                return (a:b:c:[d])
+        else
+                return (a:b:c:[d])
 
 statements :: Bool -> ParsecT [Token] MyState IO [Token]
 statements x = (do
         c <- statement x
         d <- semiColonToken
-        s <- getState
-        liftIO (print (getSymbolTbl s))
+        -- s <- getState
+        -- liftIO (print (getSymbolTbl s))
         e <- statements x
         return (c++[d]++e)
         -- if isSemiColon d then do
@@ -218,13 +225,13 @@ isSemiColon _ = False
 statement :: Bool -> ParsecT [Token] MyState IO [Token]
 statement x =
         printStatement x
+        <|> destroyCall x
         <|> try (varCreation x)
         <|> try (varAssignment x)
         <|> try (ifConditional x)
         <|> whileLoop x
         -- <|> try (procedureCall x)
         -- <|> try (returnCall x)
-        -- <|> try (destroyCall x)
         -- <|> try (continueToken x)
         -- <|> breakToken x
 
