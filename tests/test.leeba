@@ -3,15 +3,13 @@ begin struct Node:
     int value;
 end Node;
 
-begin proc(ref int a):
+begin int func(int a):
     a = a*a;
-end proc;
+    return a;
+end func;
 
 begin int main():
-    ref int n1 = create int;
-    print(n1);
-    n1 = 2;
-    proc(ref n1);
+    int n1 = func(5);
     print(n1);
     return 1;
 end main;

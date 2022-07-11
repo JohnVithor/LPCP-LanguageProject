@@ -57,7 +57,7 @@ args x = try (do
 initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 initialization x t = (do
         c <- assignToken
-        (d, r) <- refInitialization x <|> try(structCreation x) <|> expression x <|> readStatement x <|> createInit x
+        (d, r) <- refInitialization x <|> try (funcCall x) <|> try(structCreation x) <|> expression x <|> readStatement x <|> createInit x 
         return (c:d, r))
         <|>
         (do
@@ -86,6 +86,30 @@ createInit x = do
                 return (a:b, Just (Type.Ref (getTypeName r) name))
         else return (a:b, Nothing)
 
+
+funcCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+funcCall x = do
+        a <- idToken
+        b <- beginExpressionToken 
+        (c,vs) <- args x
+        d <- endExpressionToken
+        if x then do
+                s <- getState 
+                let (name, _, ts, inst) = getSubProg (getIdData a) s
+                inp <- getInput
+                setInput inst
+                let oldScope = getProgramName s
+                let oldCount = getCurrentScope s
+                updateState (callFunc name)
+                updateState (setCurrentScope 0)
+                _ <- createVarsArgs ts vs
+                (_, ret) <- subprogramStatements True
+                updateState cleanVarsScope
+                updateState (callFunc oldScope)
+                updateState (setCurrentScope oldCount)
+                setInput inp
+                return (a:b:c++[d], ret)
+        else return (a:b:c++[d],Nothing)
 
 varCreation :: Bool -> ParsecT [Token] MyState IO [Token]
 varCreation x = do
@@ -206,8 +230,6 @@ statements :: Bool -> ParsecT [Token] MyState IO [Token]
 statements x = (do
         c <- statement x
         d <- semiColonToken
-        s <- getState
-        liftIO (print (getSymbolTbl s))
         e <- statements x
         return (c++[d]++e)
         -- if isSemiColon d then do
@@ -281,16 +303,12 @@ subprogramStatements x = (do
         (a,v1) <- subprogramStatement x <|> returnCall x
         if isReturnToken (head a) then do
                 b <- semiColonToken
-                s <- getState
-                liftIO (print (getSymbolTbl s))
                 (c,_) <- subprogramStatements False
                 return (a++[b]++c, v1)
         else do
                 b <- semiColonToken
-                s <- getState
-                liftIO (print (getSymbolTbl s))
-                (c,_) <- subprogramStatements x
-                return (a++[b]++c, Nothing)
+                (c,ret) <- subprogramStatements x
+                return (a++[b]++c, ret)
         ) <|> return ([],Nothing)
 
 isReturnToken :: Token -> Bool
