@@ -3,21 +3,15 @@ begin struct Node:
     int value;
 end Node;
 
-begin proc(int a, int b):
-    begin if (a>b):
-        print(a);
-    end if;
-    begin if (a<b):
-        print(b);
-    end if;
-    begin if (a==b):
-        print(a+b);
-    end if;
+begin proc(ref int a):
+    a = a*a;
 end proc;
 
 begin int main():
-    ref Node n1 = create Node;
-    n1.value = 2;
-    proc(n1.value, 5);
+    ref int n1 = create int;
+    print(n1);
+    n1 = 2;
+    proc(ref n1);
+    print(n1);
     return 1;
 end main;

@@ -150,3 +150,12 @@ getHeapId (_, _, _, _, _, heapCount) = heapCount
 
 increaseHeapId :: MyState -> MyState 
 increaseHeapId (tbl, typs, subsc, count, func, heapCount) = (tbl, typs, subsc, count, func, heapCount+1)
+
+getProgramName :: MyState -> String 
+getProgramName (_, _, _, _, func, _) = func
+
+getCurrentScope :: MyState -> Int
+getCurrentScope (_, _, _, scope, _, _) = scope
+
+setCurrentScope :: Int -> MyState -> MyState
+setCurrentScope count (tbl, typs, subsc, _, func, heapCount) = (tbl, typs, subsc, count, func, heapCount)

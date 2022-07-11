@@ -46,12 +46,12 @@ replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedN
 
 args :: Bool -> ParsecT [Token] MyState IO ([Token], [Maybe Type])
 args x = try (do
-        (a, v) <- try(structCreation x) <|> expression x
+        (a, v) <- try(structCreation x) <|> expression x <|> refInitialization x
         b <- commaToken
         (c, vs) <- args x
         return (a++b:c, v:vs))
         <|> do
-        (a,v) <- try(structCreation x) <|> expression x
+        (a,v) <- try(structCreation x) <|> expression x <|> refInitialization x
         return (a, [v])
 
 initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
@@ -67,7 +67,6 @@ refInitialization :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 refInitialization x = do
         a <- refToken
         (d, r) <- getVar x True
-        liftIO (print a)
         if x then do
                 let v = fromJust r
                 if isRefType v then return (a:d, Just v)
@@ -247,10 +246,15 @@ procedureCall x = do
                 let (name, _, ts, inst) = getSubProg (getIdData a) s
                 inp <- getInput
                 setInput inst
+                let oldScope = getProgramName s
+                let oldCount = getCurrentScope s
                 updateState (callFunc name)
+                updateState (setCurrentScope 0)
                 _ <- createVarsArgs ts vs
                 _ <- subprogramStatements True
                 updateState cleanVarsScope
+                updateState (callFunc oldScope)
+                updateState (setCurrentScope oldCount)
                 setInput inp
                 return (a:b:c++[d])
         else return (a:b:c++[d])

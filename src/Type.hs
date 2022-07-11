@@ -11,14 +11,14 @@ data Type = Bool Bool                       |
             deriving (Eq,Show)
 
 getTypeName :: Type -> String
-getTypeName (Type.Bool _) = "Bool"
-getTypeName (Type.Int _) = "Int"
-getTypeName (Type.Real _) = "Real"
-getTypeName (Type.Char _) = "Char"
-getTypeName (Type.String _) = "String"
-getTypeName (Type.List _ _) = "List"
+getTypeName (Type.Bool _) = "bool"
+getTypeName (Type.Int _) = "int"
+getTypeName (Type.Real _) = "real"
+getTypeName (Type.Char _) = "char"
+getTypeName (Type.String _) = "string"
+getTypeName (Type.List _ _) = "list"
 getTypeName (Type.Struct name _) = name
-getTypeName (Type.Ref _ _) = "Ref"
+getTypeName (Type.Ref _ _) = "ref"
 
 getStructName :: Type -> String
 getStructName (Type.Struct name _) = name
