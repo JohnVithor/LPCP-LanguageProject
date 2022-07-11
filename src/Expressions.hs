@@ -153,7 +153,7 @@ dotAccess x v = (do
                 let tv = fromJust v
                 if isRefType (fromJust v) then do
                         s <- getState
-                        let (refName,refV,_) = symtableGetInner2 (getRefKey tv) (getSymbolTbl s)
+                        let (_,refV,_) = symtableGetInner2 (getRefKey tv) (getSymbolTbl s)
                         let fieldValue = getStructField refV name
                         (d, sts, ns, vv) <- dotAccess x (Just fieldValue)
                         return ([b,c]++d, Just refV:sts, name:ns, vv)

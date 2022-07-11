@@ -78,4 +78,4 @@ program = do
 
 
 parser :: [Token] -> IO (Either ParseError [Token])
-parser = runParserT program ([], [], [],0,"") "Error message"
+parser = runParserT program ([], [], [],0,"",0) "Error message"

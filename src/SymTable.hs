@@ -6,35 +6,38 @@ import Data.List
 
 type Subprogram = (String, Maybe Type, [(String, Type)], [Token])
 type SymTable = (String,Type,Bool)
-type MyState = ([SymTable], [Type], [Subprogram], Int, String)
+type MyState = ([SymTable], [Type], [Subprogram], Int, String,Int)
 
 getSymbolTbl:: MyState -> [SymTable]
-getSymbolTbl (ty, _, _, _, _) = ty
+getSymbolTbl (ty, _, _, _, _, _) = ty
 
 getMainFunc :: MyState -> Subprogram
-getMainFunc (_, _, subs, _, _) =  getMainFuncInner subs
+getMainFunc (_, _, subs, _, _, _) =  getSubProgInner subs "main"
 
-getMainFuncInner :: [Subprogram] -> Subprogram
-getMainFuncInner [] = error "main not found"
-getMainFuncInner ((name, t, args, stmts):subs) =
-                               if name == "main" then (name, t, args, stmts)
-                               else getMainFuncInner subs
+getSubProg :: String -> MyState -> Subprogram
+getSubProg key (_, _, subs, _, _, _) =  getSubProgInner subs key
+
+getSubProgInner :: [Subprogram] -> String -> Subprogram
+getSubProgInner [] key = error (key++" not found")
+getSubProgInner ((name, t, args, stmts):subs) key =
+                               if name == key then (name, t, args, stmts)
+                               else getSubProgInner subs key
 
 subsprogramTableInsert :: Subprogram -> MyState -> MyState
-subsprogramTableInsert sub (ty, tbl, subs, count, func) = (ty, tbl, subs ++ [sub],count, func)
+subsprogramTableInsert sub (ty, tbl, subs, count, func, heapCount) = (ty, tbl, subs ++ [sub],count, func, heapCount)
 
 typeTableInsert :: Type -> MyState -> MyState
-typeTableInsert t (ty, tbl, subs,count,func) = (ty, tbl ++ [t], subs,count,func)
+typeTableInsert t (ty, tbl, subs,count,func, heapCount) = (ty, tbl ++ [t], subs,count,func, heapCount)
 
 typeTableGet :: Token -> MyState -> Type
-typeTableGet (Type _ name) (_, _, _,_,_)
+typeTableGet (Type _ name) (_, _, _,_,_,_)
     | name == "bool" = Type.Bool False
     | name == "int" = Type.Int 0
     | name == "real" = Type.Real 0.0
     | name == "char" = Type.Char ' '
     | name == "string" = Type.String ""
     | otherwise = error "tipo primitivo não reconhecido"
-typeTableGet (Id _ name) (_, tbl, _,_,_) = getUserDefinedType name tbl
+typeTableGet (Id _ name) (_, tbl, _,_,_,_) = getUserDefinedType name tbl
 typeTableGet _ _ = error "Not a type token"
 
 getLogExprResult :: Type -> Bool
@@ -58,13 +61,13 @@ getDefaultValue (Type _ "bool") = Type.Bool True
 getDefaultValue _ = error "Is not a Type Token"
 
 enterScope :: MyState -> MyState
-enterScope (t, ty, programs,count,func) = (t, ty, programs,count+1,func)
+enterScope (t, ty, programs,count,func, heapCount) = (t, ty, programs,count+1,func, heapCount)
 
 exitScope :: MyState -> MyState
-exitScope (t, ty, programs,count,func) = (t, ty, programs,count-1,func)
+exitScope (t, ty, programs,count,func, heapCount) = (t, ty, programs,count-1,func, heapCount)
 
 cleanVarsScope :: MyState -> MyState
-cleanVarsScope (t, ty, programs,count,func) = (removeVarsInScope (func++"."++show count) t, ty, programs, count, func)
+cleanVarsScope (t, ty, programs,count,func, heapCount) = (removeVarsInScope (func++"."++show count) t, ty, programs, count, func, heapCount)
 
 removeVarsInScope :: String -> [SymTable] -> [SymTable]
 removeVarsInScope _ [] = []
@@ -73,13 +76,13 @@ removeVarsInScope prefix ((key, value, constFlag):t)
     | otherwise = (key, value, constFlag):removeVarsInScope prefix t
 
 callFunc :: String -> MyState -> MyState
-callFunc name (t, ty, ref,count,_) = (t, ty, ref,count,name)
+callFunc name (t, ty, ref,count,_, heapCount) = (t, ty, ref,count,name, heapCount)
 
 symtableGetValue :: String -> MyState -> SymTable
-symtableGetValue name (t, _, _,count,func) = symtableGetInner (func,count,name) t t
+symtableGetValue name (t, _, _,count,func, _) = symtableGetInner (func,count,name) t t
 
 symtableGetVar :: String -> MyState -> SymTable
-symtableGetVar name (t, _, _,count,func) = symtableGetInner3 (func,count,name) t t
+symtableGetVar name (t, _, _,count,func,_) = symtableGetInner3 (func,count,name) t t
 
 symtableGetInner :: (String,Int,String) -> [SymTable] -> [SymTable] -> SymTable
 symtableGetInner (scope,count,name) ((key2, value, const1):t) backup
@@ -108,15 +111,15 @@ symtableGetInner3 (scope,count,name) [] backup =
     else error ("Variável não encontrada: " ++ name)
 
 symtableInsert :: SymTable -> MyState -> MyState
-symtableInsert (name, value, const1) (symtable, t, subs,count, func) = symtableInsertInner (func++"."++show count++"."++name, value, const1) (symtable, t, subs,count, func)
+symtableInsert (name, value, const1) (symtable, t, subs,count, func, heapCount) = symtableInsertInner (func++"."++show count++"."++name, value, const1) (symtable, t, subs,count, func, heapCount)
 
 
 symtableInsertInner :: SymTable -> MyState -> MyState
-symtableInsertInner symbol ([], t, subs,count, func) = ([symbol], t, subs,count, func)
-symtableInsertInner symbol (symtable, t, subs,count, func) = (symbol:symtable, t, subs,count, func)
+symtableInsertInner symbol ([], t, subs,count, func, heapCount) = ([symbol], t, subs,count, func, heapCount)
+symtableInsertInner symbol (symtable, t, subs,count, func, heapCount) = (symbol:symtable, t, subs,count, func, heapCount)
 
 symtableUpdate :: Bool -> Type -> SymTable -> MyState -> MyState
-symtableUpdate x refVal tok (sym, ty, subs ,count, func) = (symtableUpdateInner x refVal tok sym, ty, subs,count,func)
+symtableUpdate x refVal tok (sym, ty, subs ,count, func, heapCount) = (symtableUpdateInner x refVal tok sym, ty, subs,count,func, heapCount)
 
 symtableUpdateInner :: Bool -> Type -> SymTable -> [SymTable] -> [SymTable]
 symtableUpdateInner _ _ (name, _, _) [] = error ("Variável não encontrada: " ++ name)
@@ -134,7 +137,7 @@ symtableRemove (name, value, const1) ((name2, value2, const22):t) =
     else (name2, value2, const22) : symtableRemove (name, value, const1) t
 
 symtableRemoveRef :: String -> MyState -> MyState
-symtableRemoveRef key (symtable, t, subs,count, func) =  (symtableRemoveRefInner key symtable, t, subs,count, func)
+symtableRemoveRef key (symtable, t, subs,count, func, heapCount) =  (symtableRemoveRefInner key symtable, t, subs,count, func, heapCount)
 
 symtableRemoveRefInner :: String -> [SymTable] -> [SymTable]
 symtableRemoveRefInner key [] = error ("Variável não encontrada: " ++ key)
@@ -143,10 +146,7 @@ symtableRemoveRefInner key ((name2, value2, const22):t) =
     else (name2, value2, const22) : symtableRemoveRefInner key t
 
 getHeapId :: MyState -> Int 
-getHeapId (ty, _, _, _, _) = getHeapIdInner 0 ty
+getHeapId (_, _, _, _, _, heapCount) = heapCount
 
-getHeapIdInner :: Int -> [SymTable] -> Int
-getHeapIdInner idt [] = idt
-getHeapIdInner idt ((key, _, _):t)
-    | "heap." `isPrefixOf` key = getHeapIdInner (idt+1) t
-    | otherwise = getHeapIdInner idt t
+increaseHeapId :: MyState -> MyState 
+increaseHeapId (tbl, typs, subsc, count, func, heapCount) = (tbl, typs, subsc, count, func, heapCount+1)

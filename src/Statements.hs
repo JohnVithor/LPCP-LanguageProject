@@ -65,7 +65,7 @@ initialization x t = (do
 
 refInitialization :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 refInitialization x = do
-        a <- refToken 
+        a <- refToken
         (d, r) <- getVar x True
         liftIO (print a)
         if x then do
@@ -77,12 +77,13 @@ refInitialization x = do
 
 createInit :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 createInit x = do
-        a <- createToken 
-        (b, r) <- dataType 
+        a <- createToken
+        (b, r) <- dataType
         if x then do
                 s <- getState
                 let name = "heap."++show (getHeapId s)
                 updateState (symtableInsertInner (name, r, False))
+                updateState increaseHeapId
                 return (a:b, Just (Type.Ref (getTypeName r) name))
         else return (a:b, Nothing)
 
@@ -126,28 +127,28 @@ varAssignment x = do
                                         do
                                         nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
                                         let var = (key, oldValue, constFlag)
-                                        updateState(symtableUpdate True nv var) 
+                                        updateState(symtableUpdate True nv var)
                                         return (a:b++c)
                                 else if ifRefOf (fromJust ov) (fromJust v) then
                                         do
                                         nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
                                         let var = (key, oldValue, False)
                                         updateState(symtableUpdate True nv var)
-                                        return (a:b++c)                                
+                                        return (a:b++c)
                                 else error ("Não são compatíveis: " ++ show oldValue ++ " - " ++ show (fromJust v))
-                        else do 
+                        else do
                                 if compatible (fromJust ov) (fromJust v) then
                                         do
                                         nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
                                         let var = (key, nv, False)
-                                        updateState(symtableUpdate False nv var) 
+                                        updateState(symtableUpdate False nv var)
                                         return (a:b++c)
                                 else if ifRefOf (fromJust ov) (fromJust v) then
                                         do
                                         nv <- updateStructs (extractTypes st) ns (fromJust ov) (fromJust v)
                                         let var = (key, nv, False)
                                         updateState(symtableUpdate True nv var)
-                                        return (a:b++c)                                                
+                                        return (a:b++c)
                                 else error ("Não são compatíveis: " ++ show oldValue ++ " - " ++ show (fromJust v))
         else do
                 (b, _, _, _) <- dotAccess x Nothing
@@ -155,11 +156,11 @@ varAssignment x = do
                 return (a:b++c)
 
 updateStructs :: [Type] -> [String] -> Type -> Type-> ParsecT [Token] MyState IO Type
-updateStructs [] [] _ v = do 
+updateStructs [] [] _ v = do
         return v
-updateStructs (st:ss) (name:ts) ref v = do 
+updateStructs (st:ss) (name:ts) ref v = do
         nv <- updateStructs ss ts ref v
-        let t = getStructField st name 
+        let t = getStructField st name
         if isRefType t then do
                 if isRefType nv then do
                         let a = updateStruct st (name,nv) nv
@@ -169,7 +170,7 @@ updateStructs (st:ss) (name:ts) ref v = do
                         updateState(symtableUpdate True nv var)
                         let a = updateStruct st (name,t) t
                         return a
-        else do 
+        else do
                 let a = updateStruct st (name,nv) nv
                 return a
 updateStructs a b c d = error ("debug: "++show a++" "++show b++" "++show c++" "++show d)
@@ -178,7 +179,7 @@ updateStructs a b c d = error ("debug: "++show a++" "++show b++" "++show c++" "+
 updateStruct :: Type -> (String, Type) -> Type -> Type
 updateStruct (Type.Struct name trueParams) (pName, pValue) nValue
          = Type.Struct name (replaceArg trueParams (pName, pValue) nValue)
-updateStruct _ _ _ = error "deu ruim"         
+updateStruct _ _ _ = error "deu ruim"
 
 returnCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 returnCall x = do
@@ -191,23 +192,23 @@ returnCall x = do
 destroyCall :: Bool -> ParsecT [Token] MyState IO [Token]
 destroyCall x = do
         a <- destroyToken
-        b <- beginExpressionToken 
-        c <- idToken
-        d <- endExpressionToken 
+        b <- idToken
         if x then do
-                s <- getState 
-                let (_, val, _) = symtableGetVar (getIdData c) s
-                updateState (symtableRemoveRef (getRefKey val))
-                return (a:b:c:[d])
-        else
-                return (a:b:c:[d])
+                s <- getState
+                let (_, oldValue, _) = symtableGetVar (getIdData b) s
+                (c, _, _, ov) <- dotAccess x (Just oldValue)
+                updateState (symtableRemoveRef (getRefKey (fromJust ov)))
+                return (a:b:c)
+        else do
+                (c, _, _, _) <- dotAccess x Nothing
+                return (a:b:c)
 
 statements :: Bool -> ParsecT [Token] MyState IO [Token]
 statements x = (do
         c <- statement x
         d <- semiColonToken
-        -- s <- getState
-        -- liftIO (print (getSymbolTbl s))
+        s <- getState
+        liftIO (print (getSymbolTbl s))
         e <- statements x
         return (c++[d]++e)
         -- if isSemiColon d then do
@@ -218,22 +219,81 @@ statements x = (do
         --         error "Não está faltando um ';' ?"
         ) <|> return []
 
-isSemiColon :: Token -> Bool 
-isSemiColon (SemiColon _) = True 
+isSemiColon :: Token -> Bool
+isSemiColon (SemiColon _) = True
 isSemiColon _ = False
 
 statement :: Bool -> ParsecT [Token] MyState IO [Token]
 statement x =
         printStatement x
         <|> destroyCall x
+        <|> try (procedureCall x)
         <|> try (varCreation x)
         <|> try (varAssignment x)
         <|> try (ifConditional x)
         <|> whileLoop x
-        -- <|> try (procedureCall x)
-        -- <|> try (returnCall x)
+        -- <|> try ()
         -- <|> try (continueToken x)
         -- <|> breakToken x
+
+procedureCall ::Bool -> ParsecT [Token] MyState IO [Token]
+procedureCall x = do
+        a <- idToken
+        b <- beginExpressionToken 
+        (c,vs) <- args x
+        d <- endExpressionToken
+        if x then do
+                s <- getState 
+                let (name, _, ts, inst) = getSubProg (getIdData a) s
+                inp <- getInput
+                setInput inst
+                updateState (callFunc name)
+                _ <- createVarsArgs ts vs
+                _ <- subprogramStatements True
+                updateState cleanVarsScope
+                setInput inp
+                return (a:b:c++[d])
+        else return (a:b:c++[d])
+
+createVarsArgs :: [(String, Type)] -> [Maybe Type] -> ParsecT [Token] MyState IO [Token] 
+createVarsArgs [] [] = return []
+createVarsArgs [] _ = error "mais argumentos do que o necessário"
+createVarsArgs _ [] = error "faltam argumentos"
+createVarsArgs ((name,ty):ts) (v:vals) = 
+        if compatible ty (fromJust v) then do
+                let var = (name, fromJust v, False)
+                updateState(symtableInsert var)
+                createVarsArgs ts vals
+        else error "Tipos incompatíveis"
+
+
+subprogramStatement :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+subprogramStatement x = do
+        a <- statement x
+        return (a,Nothing)
+
+subprogramStatements :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+subprogramStatements x = (do
+        (a,v1) <- subprogramStatement x <|> returnCall x
+        if isReturnToken (head a) then do
+                b <- semiColonToken
+                s <- getState
+                liftIO (print (getSymbolTbl s))
+                (c,_) <- subprogramStatements False
+                return (a++[b]++c, v1)
+        else do
+                b <- semiColonToken
+                s <- getState
+                liftIO (print (getSymbolTbl s))
+                (c,_) <- subprogramStatements x
+                return (a++[b]++c, Nothing)
+        ) <|> return ([],Nothing)
+
+isReturnToken :: Token -> Bool
+isReturnToken (Return _) = True
+isReturnToken _ = False
+
+
 
 printStatement :: Bool -> ParsecT [Token] MyState IO [Token]
 printStatement x = do
@@ -298,7 +358,7 @@ elseConditional x = try (do
                         e <- endScopeToken
                         f <- elseToken
                         return (a:b:c:d++e:[f]))
-                <|> do 
+                <|> do
                         return []
 
 -- begin while(logicExpression): stmts end while

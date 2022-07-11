@@ -9,7 +9,7 @@ updatePos pos _ _ = pos -- necessita melhoria
 
 getIdData :: Token -> String
 getIdData (Id _ x) = x
-getIdData _ = error "Not an Id token"
+getIdData a = error ("Not an Id token "++show a)
 
 globalToken :: ParsecT [Token] u IO Token
 globalToken = tokenPrim show updatePos get_token where

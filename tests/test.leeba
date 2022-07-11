@@ -3,9 +3,21 @@ begin struct Node:
     int value;
 end Node;
 
+begin proc(int a, int b):
+    begin if (a>b):
+        print(a);
+    end if;
+    begin if (a<b):
+        print(b);
+    end if;
+    begin if (a==b):
+        print(a+b);
+    end if;
+end proc;
+
 begin int main():
     ref Node n1 = create Node;
-    print(n1);
-    destroy(n1);
-    print(n1); // erro: memória já desalocada
+    n1.value = 2;
+    proc(n1.value, 5);
+    return 1;
 end main;
