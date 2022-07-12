@@ -74,6 +74,7 @@ eval (Type.Int x) (Greater _ ) (Type.Real y) = Type.Bool (fromIntegral x > y)
 eval (Type.Real x) (Greater _ ) (Type.Int y) = Type.Bool (x > fromIntegral y)
 eval t1 op t2 = error ("A operação " ++ show op ++" não está definida para os tipos " ++ show t1 ++" e " ++ show t2)
 
+
 evalUni :: Token -> Type -> Type
 evalUni (Not _ ) (Type.Bool y) = Type.Bool (not y)
 evalUni (Minus _ ) (Type.Int y) = Type.Int (-y)
@@ -85,3 +86,37 @@ getStmts (_, _, _, stmts) = stmts
 
 getArgs :: Subprogram -> [(String, Type)]
 getArgs (_, _, args, _) = args
+
+
+evalArray :: [Type] -> Token -> Type -> Token -> Type
+evalArray ([Type.Int list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.Int (accessArray index list)
+evalArray ([Type.Real list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.Real (accessArray index list)
+evalArray ([Type.Bool list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.Bool (accessArray index list)
+evalArray ([Type.String list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.String (accessArray index list)
+evalArray ([Type.Char list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.Char (accessArray index list)
+evalArray list tk1 type tk2 = error ("O valor de " ++ type ++" não é inteiro")
+
+accessArray :: Int -> [Type] -> Type
+accessArray index (x:xs) 
+                        | index > 0 = (accessArray (index-1) xs)
+                        | index == 0 = x
+                        | otherwise = error ("Access out of bounds!") --Some error message
+
+createArrayInt :: Int -> [Int]
+createArrayInt length = replicate length 0
+
+createArrayReal :: Int -> [Float]
+createArrayReal length = replicate length 0.0
+
+createArrayString :: Int -> [Char]
+createArrayString length = replicate length ""
+
+createArrayBool :: Int -> [Bool]
+createArrayBool length = replicate length False
+
+
+assignValueArray :: Int -> Type -> [Type] -> [Type]
+assignValueArray index value (x:xs)
+                                | index > 0 = x:(assignValue (index-1) value xs)
+                                | index < 0 = error ("Access out of bounds!") --Some error message
+                                | otherwise = value:xs
