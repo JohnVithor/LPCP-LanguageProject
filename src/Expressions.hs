@@ -71,13 +71,20 @@ numFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 numFactor x = try (do
                 (tk,tp) <- intToken <|> realToken
                 return ([tk], Just tp)
-                ) <|> try (getVar x False) <|> (do
+                ) <|> try (getVar x False)
+                <|> try ( do
+                a <- minusToken 
+                (b, v) <- numFactor x
+                if x then do return (a:b, Just (evalUni a (fromJust v)))
+                else return (a:b, Nothing )
+                ) <|> (do
                 a <- beginExpressionToken
                 (tk,tp) <- numExpr x
                 c <- endExpressionToken
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
                 )
+
 -- Parser inicial para expressões lógicas (OR)
 logExpr :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 logExpr x = try (do

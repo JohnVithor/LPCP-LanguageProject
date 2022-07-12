@@ -1,7 +1,7 @@
 begin struct rational_t:
 	int num;
 	int den;
-end struct;
+end rational_t;
 
 begin rational_t frac(int a, int b):
 	rational_t rt;
@@ -10,25 +10,16 @@ begin rational_t frac(int a, int b):
 	return rt; 
 end frac;
 
-//alternativa: multiplicação de frações
 begin bool eq(rational_t a, rational_t b):
-	begin if (((a.num % b.num == 0) or (b.num % a.num==0)) and ((a.den % b.den == 0) or (b.den % a.den == 0)):
-		return true;
+	bool r = false;
+	begin if (a.num*b.den == a.den*b.num):
+		r = true;
 	end if;
-	return false;
+	return r;
 end eq;
 
-begin rational_t sum(rational_t a, rational_t b):
-
-	return rt;
-end sum;
-
-begin rational_t sub(rational_t a, rational_t b):
-	return rt;
-end sub;
-
 begin rational_t neg(rational_t a):
-	a.num = -a.num;
+	a.num = 0-a.num;
 	return a;
 end neg;
 
@@ -54,5 +45,11 @@ begin rational_t inv(rational_t a):
 end inv;
 
 begin int main():
-	
+	rational_t a = frac(-3,-4);
+	rational_t b = frac(4,8);
+	rational_t c = neg(a);
+	print(c.num);
+	print(c.den);
+	bool r = eq(a,b);
+	return 2;
 end main;

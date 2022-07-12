@@ -5,7 +5,7 @@ data Type = Bool Bool                       |
             Real Double                     | 
             Char Char                       | 
             String String                   |
-            List Type [Type]                |
+            List Int Int [Type]                |
             Struct String [(String, Type)]  |
             Ref String String               
             deriving (Eq,Show)
@@ -16,7 +16,7 @@ getTypeName (Type.Int _) = "int"
 getTypeName (Type.Real _) = "real"
 getTypeName (Type.Char _) = "char"
 getTypeName (Type.String _) = "string"
-getTypeName (Type.List _ _) = "list"
+getTypeName Type.List {} = "list"
 getTypeName (Type.Struct name _) = name
 getTypeName (Type.Ref _ _) = "ref"
 
@@ -35,7 +35,7 @@ printVal (Type.Int v) = putStr (show v)
 printVal (Type.Real v) = putStr (show v)
 printVal (Type.Char v) = putStr (show v)
 printVal (Type.String v) = putStr (show v)
-printVal (Type.List _ v) = putStr (show v)
+printVal (Type.List _ _ v) = putStr (show v)
 printVal (Type.Struct name _) =  putStr name
 printVal (Type.Ref v ref) = putStr (ref++"["++show v++"]")
 

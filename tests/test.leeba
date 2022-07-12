@@ -4,12 +4,16 @@ begin struct Node:
 end Node;
 
 begin int func(int a):
-    a = a*a;
-    return a;
+    begin if (true):
+        print(a);
+    end if;
+    return 1;
 end func;
 
 begin int main():
     int n1 = func(5);
-    print(n1);
+    begin if (3+2 == 2+3):
+        print(n1);
+    end if;
     return 1;
 end main;
