@@ -88,13 +88,32 @@ getArgs :: Subprogram -> [(String, Type)]
 getArgs (_, _, args, _) = args
 
 
+
+
+
+
+
+-- NAO FINALIZADO
+
+-- 1D ARRAY
+-- a[10]
 evalArray :: [Type] -> Token -> Type -> Token -> Type
 evalArray ([Type.Int list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.Int (accessArray index list)
 evalArray ([Type.Real list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.Real (accessArray index list)
 evalArray ([Type.Bool list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.Bool (accessArray index list)
 evalArray ([Type.String list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.String (accessArray index list)
-evalArray ([Type.Char list]) (BeginListConst _) (Type.Int index) (EndListConst _) = Type.Char (accessArray index list)
 evalArray list tk1 type tk2 = error ("O valor de " ++ type ++" não é inteiro")
+
+
+-- 2D ARRAY
+-- a[10][5]
+eval2dArray :: [Type] -> Token -> Type -> Token -> Token -> Type -> Token -> Type
+eval2dArray ([Type.Int list]) (BeginListConst _) (Type.Int rowIndex) (EndListConst _) (BeginListConst _) (Type.Int columnIndex) (EndListConst _) = Type.Int (accessArray (rowIndex*columnIndex) list)
+eval2dArray ([Type.Real list]) (BeginListConst _) (Type.Int rowIndex) (EndListConst _) (BeginListConst _) (Type.Int columnIndex) (EndListConst _) = Type.Real (accessArray (rowIndex*columnIndex) list)
+eval2dArray ([Type.Bool list]) (BeginListConst _) (Type.Int rowIndex) (EndListConst _) (BeginListConst _) (Type.Int columnIndex) (EndListConst _) = Type.Bool (accessArray (rowIndex*columnIndex) list)
+eval2dArray ([Type.String list]) (BeginListConst _) (Type.Int rowIndex) (EndListConst _) (BeginListConst _) (Type.Int columnIndex) (EndListConst _) = Type.String (accessArray (rowIndex*columnIndex) list)
+evalArray list tk1 type tk2 = error ("Indice não inteiro")
+
 
 accessArray :: Int -> [Type] -> Type
 accessArray index (x:xs) 
@@ -108,7 +127,7 @@ createArrayInt length = replicate length 0
 createArrayReal :: Int -> [Float]
 createArrayReal length = replicate length 0.0
 
-createArrayString :: Int -> [Char]
+createArrayString :: Int -> [String]
 createArrayString length = replicate length ""
 
 createArrayBool :: Int -> [Bool]

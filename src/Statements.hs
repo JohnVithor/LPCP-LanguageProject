@@ -415,3 +415,56 @@ whileLoop x = do
                         h <- endScopeToken
                         i <- whileToken
                         return (a:b:c:d++e:f:g++h:[i])
+
+
+--NAO FINALIZADO
+
+--a[10]
+arrayAccess :: Bool -> ParsecT [Token] MyState IO [Token]
+arrayAccess x = do
+                a <- idToken
+                b <- beginListConstToken
+                c <- intToken
+                d <- endListConstToken
+                e <- try(array2dAccess)
+                return (a:b:c:[d]:e)
+
+
+--a[10][5]
+array2dAccess :: Bool -> ParsecT [Token] MyState IO [Token]
+array2dAccess x = do
+                a <- beginListConstToken
+                b <- intToken
+                c <- endListConstToken
+                return (a:b:[c])
+
+
+
+arrayModification :: Bool -> ParsecT [Token] MyState IO [Token]
+modification x = do 
+                a <- idToken
+                b <- beginListConstToken
+                c <- intToken
+                d <- endListConstToken   
+                e <- try(array1dModification <|> array2dModification)
+                return (a:b:c:e)        --'e' is already a list of tokens
+
+
+--a[10] = 10
+array1dModification :: Bool -> ParsecT [Token] MyState IO [Token]
+listAccess x = do
+                a <- equalToken
+                b <- intToken <|> realToken <|> boolToken <|> stringToken
+                return (a:[b])
+
+--a[10][2] = 10
+array2dModification :: Bool -> ParsecT [Token] MyState IO [Token]
+listAccess x = do
+                a <- beginListConstToken
+                b <- intToken
+                c <- endListConstToken
+                d <- equalToken
+                e <- intToken <|> realToken <|> boolToken <|> stringToken
+                return (a:b:c:d:[e])
+
+--CREATE ARRAY - MISSING
