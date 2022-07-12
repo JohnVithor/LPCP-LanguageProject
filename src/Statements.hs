@@ -418,53 +418,66 @@ whileLoop x = do
 
 
 --NAO FINALIZADO
-
---a[10]
-arrayAccess :: Bool -> ParsecT [Token] MyState IO [Token]
-arrayAccess x = do
+--a[20]
+--Parser para obter o valor armazenado de alguma posicao em uma array
+arrayAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+arrayAccess execMode = do
                 a <- idToken
                 b <- beginListConstToken
                 c <- intToken
                 d <- endListConstToken
-                e <- try(array2dAccess)
-                return (a:b:c:[d]:e)
+                e <- array2dAccess execMode
+                if execMode then do --obter o valor armazenado
+                        s <- getState
+                        let (_, value, _) = symTableGetValue (getIdData a) s
+
+                        if e == [] do --1d array
+                                result <- evalArrayAcess value
+                                return (a:b:c:d:e,result)
+
+                        else do --2d array
+                                result <- eval2dArrayAcess value
+                                return (a:b:c:d:e,result)
+
+                else do --armazenar os tokens apenas
+                return (a:b:c:d:e, Nothing)
 
 
---a[10][5]
+-- continuacao do arrayAccess
+--a[20][1]
 array2dAccess :: Bool -> ParsecT [Token] MyState IO [Token]
-array2dAccess x = do
+array2dAccess execMode = do
                 a <- beginListConstToken
                 b <- intToken
                 c <- endListConstToken
                 return (a:b:[c])
+                <|> return []
 
 
 
 arrayModification :: Bool -> ParsecT [Token] MyState IO [Token]
-modification x = do 
+modification execMode = do 
                 a <- idToken
                 b <- beginListConstToken
                 c <- intToken
                 d <- endListConstToken   
-                e <- try(array1dModification <|> array2dModification)
-                return (a:b:c:e)        --'e' is already a list of tokens
+                e <- array1dModification <|> array2dModification
+                return (a:b:c:d:e) 
 
 
 --a[10] = 10
 array1dModification :: Bool -> ParsecT [Token] MyState IO [Token]
-listAccess x = do
-                a <- equalToken
-                b <- intToken <|> realToken <|> boolToken <|> stringToken
-                return (a:[b])
+array1dModification x = do
+                a <- initialization execMode
+                return a
+                <|> return []
 
 --a[10][2] = 10
 array2dModification :: Bool -> ParsecT [Token] MyState IO [Token]
-listAccess x = do
+listAccess execMode = do
                 a <- beginListConstToken
                 b <- intToken
                 c <- endListConstToken
-                d <- equalToken
-                e <- intToken <|> realToken <|> boolToken <|> stringToken
-                return (a:b:c:d:[e])
-
---CREATE ARRAY - MISSING
+                d <- initialization execMode
+                return (a:b:c:d)
+                <|> return []

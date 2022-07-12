@@ -5,7 +5,7 @@ data Type = Bool Bool                       |
             Real Double                     | 
             Char Char                       | 
             String String                   |
-            List Type [Type]                |
+            List Int Int  [Type]                |
             Struct String [(String, Type)]  |
             Ref String String               
             deriving (Eq,Show)
