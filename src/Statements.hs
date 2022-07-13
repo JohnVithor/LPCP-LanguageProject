@@ -417,7 +417,7 @@ whileLoop x = do
                         return (a:b:c:d++e:f:g++h:[i])
 
 
---NAO FINALIZADO
+
 --list_example[20]
 --Parser para obter o valor armazenado de alguma posicao em uma array
 arrayAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
@@ -451,11 +451,11 @@ array2dAccess execMode = do
                 b <- intToken
                 c <- endListConstToken
                 return (a:b:[c],b)
-                <|> return []
+                <|> return ([], Nothing)
 
 
 --parser para alterar o valor de alguma posicao de uma lista
-arrayModification :: Bool -> ParsecT [Token] MyState IO [Token]
+arrayModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 arrayModification execMode = do 
                         a <- idToken
                         b <- beginListConstToken
@@ -475,7 +475,7 @@ arrayModification execMode = do
                                         result <- assignValueArray value rowIndex colIndex
                                         return (a:b:rowIndex:d:e, result)
                                         
-                        return (a:b:rowIndex:d:e) 
+                        return (a:b:rowIndex:d:e, Nothing) 
 
 
 --       = 10
@@ -484,7 +484,7 @@ array1dModification x = do
                 --tokens + valor + Nothing
                 (a,value) <- initialization execMode
                 return (a, Nothing, value)
-                <|> return []
+                <|> return ([], Nothing)
 
 --      [2] = 10
 array2dModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type, Maybe Type)
@@ -495,4 +495,42 @@ array2dModification execMode = do
                                 c <- endListConstToken
                                 (d, value) <- initialization execMode
                                 return (a:colIndex:c:d, colIndex, value)
-                                <|> return []
+                                <|> return ([], Nothing)
+
+
+--int[10] a;
+--int[10][2] a;
+
+--NAO FINALIZADO
+arrayCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+arrayCreation execMode = do
+                        type_tk <- intToken <|> realToken <|> boolToken <|> stringToken <|> structToken
+                        rowIndex <- subscript execMode --       (rowIndexTks, rowIndex) <- subscript execMode
+                        colIndex <- subscript execMode --       (colIndexTks, colIndex) <- subscript execMode
+                        name <- idToken
+                        semicolon <- semiColonToken
+                        if execMode do
+                                s <- getState
+                                
+                                if colIndex == [] then do
+                                        result <- evalCreateArray rowIndex
+                                        --TODO: inserir na tabela a lista retorna por evalCreateArray
+                                        symtableInsert s name result -- NAO FINALIZADO
+                                        return (type_tk:rowIndex:idToken:semicolon, result)
+                                        
+                                else do
+                                        result <- evalCreateArray rowIndex colIndex 
+                                        --TODO: inserir na tabela a lista retorna por evalCreateArray
+                                        symtableInsert s name result -- NAO FINALIZADO
+                                        return (type_tk:rowIndex:colIndex:idToken:semicolon, result)
+
+                        else do
+                                return (type_tk:rowIndex:colIndex:idToken:[semicolon], Nothing)
+
+subscript :: Bool -> ParsecT [Token] MyState IO [Token] -- ([Token], Type)
+subscript execMode = do
+                        a <- beginListConstToken
+                        colIndex <- intToken -- colIndex <- initialization execMode
+                        c <- endListConstToken
+                        return (a:colIndex:[c]) -- return (a:colIndex:[c], colIndex)
+                        <|> return [] --([], Nothing)
