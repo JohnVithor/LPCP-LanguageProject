@@ -418,7 +418,7 @@ whileLoop x = do
 
 
 --NAO FINALIZADO
---a[20]
+--list_example[20]
 --Parser para obter o valor armazenado de alguma posicao em uma array
 arrayAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 arrayAccess execMode = do
@@ -426,18 +426,18 @@ arrayAccess execMode = do
                 b <- beginListConstToken
                 c <- intToken
                 d <- endListConstToken
-                e <- array2dAccess execMode
-                if execMode then do --obter o valor armazenado
+                (e, colIndex) <- array2dAccess execMode
+                if execMode then do
                         s <- getState
                         let (_, value, _) = symTableGetValue (getIdData a) s
 
-                        if e == [] do --1d array
-                                result <- evalArrayAcess value
-                                return (a:b:c:d:e,result)
+                        if e == [] do --tratamento array 1D
+                                result <- evalArrayAcess value c
+                                return (a:b:c:[d], result)
 
-                        else do --2d array
-                                result <- eval2dArrayAcess value
-                                return (a:b:c:d:e,result)
+                        else do --tratamento array 2D
+                                result <- eval2dArrayAcess value c colIndex
+                                return (a:b:c:d:e, result)
 
                 else do --armazenar os tokens apenas
                 return (a:b:c:d:e, Nothing)
@@ -445,39 +445,54 @@ arrayAccess execMode = do
 
 -- continuacao do arrayAccess
 --a[20][1]
-array2dAccess :: Bool -> ParsecT [Token] MyState IO [Token]
+array2dAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 array2dAccess execMode = do
                 a <- beginListConstToken
                 b <- intToken
                 c <- endListConstToken
-                return (a:b:[c])
+                return (a:b:[c],b)
                 <|> return []
 
 
-
+--parser para alterar o valor de alguma posicao de uma lista
 arrayModification :: Bool -> ParsecT [Token] MyState IO [Token]
-modification execMode = do 
-                a <- idToken
-                b <- beginListConstToken
-                c <- intToken
-                d <- endListConstToken   
-                e <- array1dModification <|> array2dModification
-                return (a:b:c:d:e) 
+arrayModification execMode = do 
+                        a <- idToken
+                        b <- beginListConstToken
+                        rowIndex <- intToken
+                        d <- endListConstToken   
+                        (e, colIndex, value) <- array1dModification <|> array2dModification
+
+                        if execMode then
+                                s <- getState
+                                let (_, value, _) = symTableGetValue (getIdData a) s 
+
+                                if colIndex == Nothing do --tratamento array 1D
+                                        result <- assignValueArray value rowIndex
+                                        return (a:b:rowIndex:d:e, result)
+
+                                else do --tratamento array 2D
+                                        result <- assignValueArray value rowIndex colIndex
+                                        return (a:b:rowIndex:d:e, result)
+                                        
+                        return (a:b:rowIndex:d:e) 
 
 
---a[10] = 10
-array1dModification :: Bool -> ParsecT [Token] MyState IO [Token]
+--       = 10
+array1dModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type, Maybe Type)
 array1dModification x = do
-                a <- initialization execMode
-                return a
+                --tokens + valor + Nothing
+                (a,value) <- initialization execMode
+                return (a, Nothing, value)
                 <|> return []
 
---a[10][2] = 10
-array2dModification :: Bool -> ParsecT [Token] MyState IO [Token]
-listAccess execMode = do
-                a <- beginListConstToken
-                b <- intToken
-                c <- endListConstToken
-                d <- initialization execMode
-                return (a:b:c:d)
-                <|> return []
+--      [2] = 10
+array2dModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type, Maybe Type)
+array2dModification execMode = do
+                                --tokens + colIndex + valor
+                                a <- beginListConstToken
+                                colIndex <- intToken
+                                c <- endListConstToken
+                                (d, value) <- initialization execMode
+                                return (a:colIndex:c:d, colIndex, value)
+                                <|> return []

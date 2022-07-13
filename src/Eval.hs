@@ -89,27 +89,26 @@ getArgs (_, _, args, _) = args
 
 
 
-
--- Eval para acessar alguma posicao de uma array (1d)]
-evalArrayAcess :: [Type] -> Type  -> Type
-evalArrayAcess ([Type.Int list])  (Type.Int index)  = Type.Int (accessArray index list)
-evalArrayAcess ([Type.Real list])  (Type.Int index)  = Type.Real (accessArray index list)
-evalArrayAcess ([Type.Bool list])  (Type.Int index)  = Type.Bool (accessArray index list)
-evalArrayAcess ([Type.String list])  (Type.Int index)  = Type.String (accessArray index list)
+-- Eval para acessar alguma posicao de uma array (1d)
+            -- Type.List  rowIndex
+evalArrayAcess :: Type -> Type  -> Type
+evalArrayAcess (Type.List numRows _ list) (Type.Int rowIndex) = accessArray rowIndex list
 evalArrayAcess list type_index = error ("Indice não é um inteiro")
 
 
 
 -- Eval para acessar alguma posicao de uma matriz (2d)
-eval2dArrayAcess :: [Type] ->  Type ->  Type -> Type  -> Type
-eval2dArrayAcess ([Type.Int list])  (Type.Int rowIndex)   (Type.Int columnIndex) (Type.Int numRows)  = Type.Int (accessArray (columnIndex + rowIndex*numRows) list)
-eval2dArrayAcess ([Type.Real list])  (Type.Int rowIndex)   (Type.Int columnIndex) (Type.Int numRows)  = Type.Real (accessArray (columnIndex + rowIndex*numRows) list)
-eval2dArrayAcess ([Type.Bool list])  (Type.Int rowIndex)   (Type.Int columnIndex) (Type.Int numRows)  = Type.Bool (accessArray (columnIndex + rowIndex*numRows) list)
-eval2dArrayAcess ([Type.String list])  (Type.Int rowIndex)   (Type.Int columnIndex) (Type.Int numRows)  = Type.String (accessArray (columnIndex + rowIndex*numRows) list)
-eval2dArrayAcess list type_index_row type_index_col  = error ("Indice não é um inteiro")
+--                  list    row        col    
+eval2dArrayAcess :: Type -> Type ->  Type -> Type
+eval2dArrayAcess (Type.List numRows _ list)  (Type.Int rowIndex)   (Type.Int columnIndex) = accessArray (columnIndex + rowIndex*numRows) list
+eval2dArrayAcess type index_row index_col  = error ("Indice não é um inteiro")
+
+
+
 
 
 --Eval para criar array (1d)
+-- 't' sera o valor atribuido na inicializacao
 evalCreateArray :: Type -> Type  -> Type
 evalCreateArray t (Type.Int length) = Type.List length 1 (createArray length t)
 
@@ -118,6 +117,8 @@ evalCreateArray t (Type.Int length) = Type.List length 1 (createArray length t)
 evalCreateMatrix :: Type -> Type -> Type  -> Type
 evalCreateMatrix t (Type.Int numRows) (Type.Int numCols) = Type.List numRows numCols (createArray numRows*numCols t)
 
+
+
 --Eval para acessar alguma posicao da lista (array 1d ou array 2d)
 accessArray :: Int -> [Type] -> Type
 accessArray index (x:xs) 
@@ -125,9 +126,24 @@ accessArray index (x:xs)
                         | index == 0 = x
                         | otherwise = error ("Access out of bounds!") --Some error message
 
+
+
 --Eval para criar um array (1d ou 2d)
 createArray :: Int -> Type -> [Type]
 createArray length v = replicate length v
+
+
+
+            --         Type.List   rowIndex     newValue
+evalArrayAssignment :: Type ->      Type ->      Type -> [Type]
+evalArrayAssignment (Type.List numRows _ list) (Type.Int rowIndex) (Type.Int newValue) = assignValueArray rowIndex newValue list
+evalArrayAssignment list type_index new_value = error ("Indice não é um inteiro")
+
+            --         Type.List      rowIndex  colIndex    newValue
+eval2dArrayAssignment :: Type ->      Type ->   Type ->     Type     -> [Type]
+evalArrayAssignment (Type.List numRows numCols list) (Type.Int rowIndex) (Type.Int colIndex) (Type.Int newValue) = assignValueArray (columnIndex + rowIndex*numRows) newValue list
+evalArrayAssignment type index_row index_col new_value  = error ("Indice não é um inteiro")
+
 
 --Eval para atribuir um valor a alguma posicao da array (1d ou 2d)
 assignValueArray :: Int -> Type -> [Type] -> [Type]
