@@ -1,18 +1,25 @@
 begin mdc(int m, int n, ref int r):
-	begin if (n%m == 0):
+	begin if (m%n == 0):
 		r = n;
-	end if;
+	end if
 	begin else:
-		begin if (m%n == 0):
+		begin if (n%m == 0):
 			r = m;
-		end if;
-	end else;
-	begin else:
-		begin if (m>n):
-			mdc(n, m%n, ref r);
-		end if;
-		begin if (n>n):
-			mdc(m, n%m, ref r);
-		end if;
+		end if
+		begin else:
+			begin if (m>n):
+				mdc(n, m%n, ref r);
+			end if;
+			begin if (n>m):
+				mdc(m, n%m, ref r);
+			end if;
+		end else;
 	end else;
 end mdc;
+
+begin int main():
+	ref int r = create int;
+	mdc(55189389385, 1242142145, ref r);
+	print(r);
+	return 1;
+end main;

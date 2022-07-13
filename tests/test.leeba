@@ -4,13 +4,14 @@ begin struct Node:
 end Node;
 
 begin int func(int a):
-    begin if (true):
+    begin if (1==1):
         print(a);
     end if;
     return 1;
 end func;
 
 begin int main():
+    print("oi");
     int n1 = func(5);
     begin if (3+2 == 2+3):
         print(n1);

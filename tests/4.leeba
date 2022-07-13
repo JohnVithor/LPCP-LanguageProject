@@ -18,6 +18,24 @@ begin bool eq(rational_t a, rational_t b):
 	return r;
 end eq;
 
+begin rational_t sum(rational_t a, rational_t b):
+	a.num = a.num * b.den;
+	b.num = b.num * a.den;
+	int den = b.den * a.den;
+	int num = a.num+b.num;
+	rational_t c = frac(num,den);
+	return c;
+end sum;
+
+begin rational_t sub(rational_t a, rational_t b):
+	a.num = a.num * b.den;
+	b.num = b.num * a.den;
+	int den = b.den * a.den;
+	int num = a.num-b.num;
+	rational_t c = frac(num,den);
+	return c;
+end sub;
+
 begin rational_t neg(rational_t a):
 	a.num = 0-a.num;
 	return a;
@@ -44,12 +62,42 @@ begin rational_t inv(rational_t a):
 	return rt;
 end inv;
 
+
 begin int main():
-	rational_t a = frac(-3,-4);
-	rational_t b = frac(4,8);
-	rational_t c = neg(a);
+	rational_t a = frac(2,4);
+	print(a.num);
+	print(a.den);
+	
+	rational_t b = frac(5,8);
+	print(b.num);
+	print(b.den);
+	
+	bool r = eq(a,b);
+	print(r);
+
+	rational_t c = sum(a,b);
 	print(c.num);
 	print(c.den);
-	bool r = eq(a,b);
-	return 2;
+
+	rational_t d = sub(a,b);
+	print(d.num);
+	print(d.den);
+	
+	rational_t e = neg(d);
+	print(e.num);
+	print(e.den);
+
+	rational_t f = prod(a,b);
+	print(f.num);
+	print(f.den);
+
+	rational_t g = div(a,b);
+	print(g.num);
+	print(g.den);
+
+	rational_t h = inv(g);
+	print(h.num);
+	print(h.den);
+
+	return 1;
 end main;

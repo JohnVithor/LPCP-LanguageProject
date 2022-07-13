@@ -6,6 +6,7 @@ import SymTable
 import TokenParser
 import Declarations
 import Statements
+import Control.Monad.IO.Class (MonadIO(liftIO))
 
 functionCreation :: ParsecT [Token] MyState IO [Token]
 functionCreation = do
@@ -28,7 +29,7 @@ subprogramCreation ret = do
         (e,ps) <- params
         f <- endExpressionToken
         g <- colonToken
-        (h,_) <- subprogramStatements False
+        (h,_) <- statements False
         i <- endScopeToken
         j <- idToken
         l <- semiColonToken

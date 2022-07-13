@@ -23,7 +23,7 @@ globalVars = try (do
 
 globalVarCreations :: ParsecT [Token] MyState IO [Token]
 globalVarCreations = try (do
-                a <- varCreation True -- <|> constantDecl
+                (a,_) <- varCreation True -- <|> constantDecl
                 b <- semiColonToken 
                 c <- globalVarCreations
                 return (a++b:c))

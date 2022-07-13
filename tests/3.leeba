@@ -1,14 +1,14 @@
 begin int main():
-	real M0[][];
-	real M1[][];
+	real[2][2] M0;
+	real[2][2] M1;
 	// ler dados
 	int i = 0;
 	int j = 0;
 	int k = 0;
-	int M0_len;
-	int M1_len;
-	real M_sum[][];
-	real M_prod[][];
+	int M0_len = 2;
+	int M1_len = 2;
+	real[2][2] M_sum;
+	real[2][2] M_prod;
 	real prod_sum;
 	begin while (i < M0_len):
 		begin while (j < M1_len):

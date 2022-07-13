@@ -17,6 +17,7 @@ cast (Lexer.CastingInt _) (Type.String value) = do
     let v = readMaybe value
     maybe (error ("Não é possível converter '" ++ value ++ "' para Int")) Type.Int v
 
+cast (Lexer.CastingString _) (Type.Int value) = Type.String (show value)
 cast a b = error ("cast inválido: " ++ show a ++ show b)
 
 
