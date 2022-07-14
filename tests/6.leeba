@@ -4,13 +4,13 @@ begin struct node:
     ref node right;
 end node;
 
-begin ref node create_node(int v) {
+begin ref node create_node(int v):
   ref node n = create node;
   n.value = v;
   n.left = NULL;
   n.right = NULL;
   return n;
-}
+end create_node;
 
 begin ref node insert(node *n, int v):
     begin if (n == NULL):
