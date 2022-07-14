@@ -21,8 +21,8 @@ begin int fibonacci(int v1):
   begin if(v1 == 1):
     return 1;
   end if;
-  int a = fibonacci(v1-2);
-  return a + fibonacci(v1-1);
+  int c = fibonacci(v1-2) + fibonacci(v1-1);
+  return c;
 end fibonacci;
 
 begin int main():

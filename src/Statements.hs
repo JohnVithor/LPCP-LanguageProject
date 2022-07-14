@@ -424,6 +424,7 @@ numExpr x = try (do
 evalRemaining :: Bool -> Maybe Type -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 evalRemaining x n1 = try(do
                 op <- plusToken <|> minusToken
+                liftIO (print "sum")
                 (t2, n2) <- numTerm x
                 if x then do
                         let e = eval (fromJust n1) op (fromJust n2)
@@ -611,5 +612,6 @@ funcCall x = do
                 updateState (callFunc oldScope)
                 updateState (setCurrentScope oldCount)
                 setInput inp
+                liftIO (print "funccall end")
                 return (a:b:c++[d], ret)
         else return (a:b:c++[d],Nothing)
