@@ -1,6 +1,70 @@
+begin struct node:
+    int value;
+    ref node left;
+    ref node right;
+end node;
+
+begin ref node create_node(int v) {
+  ref node n = create node;
+  n.value = v;
+  n.left = NULL;
+  n.right = NULL;
+  return n;
+}
+
+begin ref node insert(node *n, int v):
+    begin if (n == NULL):
+        return create_node(v);
+    end if;
+    begin if (v < n.value):
+        n.left = insert(n.left, v);
+    end if
+    begin else:
+        n.right = insert(n.right, v);
+    end else;
+  return node;
+end insert;
+
+begin int find_min(ref node n):
+    begin if(n.left != NULL):
+        find_min(n.left, min);
+    end if;
+    begin if(n.left == NULL):
+        return n.value;
+    end if;
+end find_min;
+
+begin int find_max(ref node n):
+    begin if(n.right != NULL):
+        find_max(n.right, min);
+    end if;
+    begin if(n.right == NULL):
+        return n.value;
+    end if;
+end find_max;
+
+begin print_tree(ref node n, int lvl):
+    print("lvl" + lvl ": " + n.value);
+    begin if(n.right != NULL):
+        print_tree(n.right, lvl + 1);
+    end if;
+    begin if(n.left != NULL):
+        print_tree(n.left, lvl + 1);
+    end if;
+end print_tree;
+
 begin int main():
-	real x = 10.0;
-	real y = 5.2;
-	int c = 2;
-	print(x*x - y + c);
+    int[10] tree_arr;
+    int i = 0;
+    begin while(i < 10):
+        tree_arr[i] = (i*17)%10;
+    end while;
+    ref node tree = create node;
+    begin while(i < 10):
+        tree = insert(tree, tree_arr[i]);
+    end while;
+    print("Minimo: " + find_min(tree));
+    print("Maximo: " + find_min(tree));
+    print_tree(tree, 0);
+    return 1;
 end main;
