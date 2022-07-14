@@ -4,17 +4,29 @@ begin struct Node:
 end Node;
 
 begin int func(int a):
-    begin if (1==1):
-        print(a);
-    end if;
-    return 1;
+    int s = 3;
+    begin if (6 == 2):
+        return s;
+    end if
+    begin else:
+        return s+1;
+    end else;
+    return 534;
 end func;
 
+begin int fibonacci(int v1):
+  begin if(v1 == 0):
+    return 0;
+  end if;
+  begin if(v1 == 1):
+    return 1;
+  end if;
+  int a = fibonacci(v1-2);
+  return a + fibonacci(v1-1);
+end fibonacci;
+
 begin int main():
-    print("oi");
-    int n1 = func(5);
-    begin if (3+2 == 2+3):
-        print(n1);
-    end if;
+    int a = fibonacci(2);
+    print(n1);
     return 1;
 end main;

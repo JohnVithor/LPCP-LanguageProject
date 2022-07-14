@@ -25,7 +25,7 @@ extra-source-files:
 
 library
     ghc-options:     -Wall -fno-cse -fno-full-laziness
-    exposed-modules: Lexer, Parser, Eval, SymTable, TokenParser, Type, Expressions, Declarations, Statements, Subprograms
+    exposed-modules: Lexer, Parser, Eval, SymTable, TokenParser, Type, Declarations, Statements, Subprograms
 
     -- Modules included in this library but not exported.
     -- other-modules:
