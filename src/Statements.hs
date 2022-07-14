@@ -418,119 +418,85 @@ whileLoop x = do
 
 
 
---list_example[20]
+--example[20]
+--example[20][5]
 --Parser para obter o valor armazenado de alguma posicao em uma array
 arrayAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 arrayAccess execMode = do
-                a <- idToken
-                b <- beginListConstToken
-                c <- intToken
-                d <- endListConstToken
-                (e, colIndex) <- array2dAccess execMode
+                
+                name <- idToken
+                (rowIndex, rowIndexValue) <- subscript execMode
+                (colIndex, colIndexValue) <- subscript execMode
+
                 if execMode then do
                         s <- getState
-                        let (_, value, _) = symTableGetValue (getIdData a) s
+                        let (_, lista, _) = symTableGetValue (getIdData name) s
 
-                        if e == [] do --tratamento array 1D
-                                result <- evalArrayAcess value c
-                                return (a:b:c:[d], result)
+                        if colIndex == [] then do
+                                result <- evalArrayAcess lista rowIndexValue
+                                return (name:rowIndex:colIndex, result) 
+                        else do
+                                result <- evalMatrixAcess lista rowIndexValue colIndexValue
+                                return (name:rowIndex:colIndex, result)
+                else do
+                        return (name:rowIndex:colIndex, Nothing)
 
-                        else do --tratamento array 2D
-                                result <- eval2dArrayAcess value c colIndex
-                                return (a:b:c:d:e, result)
-
-                else do --armazenar os tokens apenas
-                return (a:b:c:d:e, Nothing)
-
-
--- continuacao do arrayAccess
---a[20][1]
-array2dAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-array2dAccess execMode = do
-                a <- beginListConstToken
-                b <- intToken
-                c <- endListConstToken
-                return (a:b:[c],b)
-                <|> return ([], Nothing)
 
 
 --parser para alterar o valor de alguma posicao de uma lista
 arrayModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 arrayModification execMode = do 
-                        a <- idToken
-                        b <- beginListConstToken
-                        rowIndex <- intToken
-                        d <- endListConstToken   
-                        (e, colIndex, value) <- array1dModification <|> array2dModification
-
-                        if execMode then
-                                s <- getState
-                                let (_, value, _) = symTableGetValue (getIdData a) s 
-
-                                if colIndex == Nothing do --tratamento array 1D
-                                        result <- assignValueArray value rowIndex
-                                        return (a:b:rowIndex:d:e, result)
-
-                                else do --tratamento array 2D
-                                        result <- assignValueArray value rowIndex colIndex
-                                        return (a:b:rowIndex:d:e, result)
-                                        
-                        return (a:b:rowIndex:d:e, Nothing) 
-
-
---       = 10
-array1dModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type, Maybe Type)
-array1dModification x = do
-                --tokens + valor + Nothing
-                (a,value) <- initialization execMode
-                return (a, Nothing, value)
-                <|> return ([], Nothing)
-
---      [2] = 10
-array2dModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type, Maybe Type)
-array2dModification execMode = do
-                                --tokens + colIndex + valor
-                                a <- beginListConstToken
-                                colIndex <- intToken
-                                c <- endListConstToken
-                                (d, value) <- initialization execMode
-                                return (a:colIndex:c:d, colIndex, value)
-                                <|> return ([], Nothing)
-
-
---int[10] a;
---int[10][2] a;
-
---NAO FINALIZADO
-arrayCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-arrayCreation execMode = do
-                        type_tk <- intToken <|> realToken <|> boolToken <|> stringToken <|> structToken
-                        rowIndex <- subscript execMode --       (rowIndexTks, rowIndex) <- subscript execMode
-                        colIndex <- subscript execMode --       (colIndexTks, colIndex) <- subscript execMode
                         name <- idToken
-                        semicolon <- semiColonToken
-                        if execMode do
+                        (rowIndex, rowIndexValue) <- subscript execMode
+                        (colIndex, colIndexValue) <- subscript execMode
+                        (init, newValue) <- initialization execMode
+                        
+                        if execMode then do
+                                s <- getState
+                                let (_, list, _) = symTableGetValue (getIdData name) s
+
+                                if colIndex == [] do
+                                        result <- evalArrayAssignment lista rowIndexValue newValue
+                                        return (name:rowIndex:init, result)
+                                else do
+                                        result <- evalMatrixAssignment lista rowIndexValue colIndexValue newValue
+                                        return (name:rowIndex:colIndex:init, result)
+                        else do
+                               return (name:rowIndex:colIndex:init, Nothing)  
+
+
+
+--int[10] a;            colIndex == []
+--int[10][2] a;         colIndex != []
+
+arrayCreation :: Bool -> ParsecT [Token] MyState IO [Token]
+arrayCreation execMode = do
+                        (tokens, types) <- dataType
+                        (rowIndex, rowValue) <- subscript execMode 
+                        (colIndex, colValue) <- subscript execMode
+                        name <- idToken
+                        
+                        if execMode then do
                                 s <- getState
                                 
                                 if colIndex == [] then do
-                                        result <- evalCreateArray rowIndex
-                                        --TODO: inserir na tabela a lista retorna por evalCreateArray
-                                        symtableInsert s name result -- NAO FINALIZADO
-                                        return (type_tk:rowIndex:idToken:semicolon, result)
+                                        result <- evalCreateArray rowValue types
+                                        updateState(symtableInsert (name, result, False))       -- (identificador, lista, é constante)
+                                        return (tokens:rowIndex:name)
                                         
                                 else do
-                                        result <- evalCreateArray rowIndex colIndex 
-                                        --TODO: inserir na tabela a lista retorna por evalCreateArray
-                                        symtableInsert s name result -- NAO FINALIZADO
-                                        return (type_tk:rowIndex:colIndex:idToken:semicolon, result)
+                                        result <- evalCreateMatrix rowValue colValue types
+                                        updateState(symtableInsert (name, result, False))       -- (identificador, lista, é constante)
+                                        return (tokens:rowIndex:colIndex:name)
 
                         else do
-                                return (type_tk:rowIndex:colIndex:idToken:[semicolon], Nothing)
+                                return (tokens:rowIndex:colIndex:name)
 
-subscript :: Bool -> ParsecT [Token] MyState IO [Token] -- ([Token], Type)
+--parser para lidar com o operador []
+subscript :: Bool -> ParsecT [Token] MyState IO ([Token], Type)
 subscript execMode = do
                         a <- beginListConstToken
-                        colIndex <- intToken -- colIndex <- initialization execMode
+                        (index, value) <- expression execMode
                         c <- endListConstToken
-                        return (a:colIndex:[c]) -- return (a:colIndex:[c], colIndex)
-                        <|> return [] --([], Nothing)
+                        return (a:index:[c], value)
+                        <|> ([], Nothing)

@@ -99,23 +99,40 @@ evalArrayAcess list type_index = error ("Indice não é um inteiro")
 
 -- Eval para acessar alguma posicao de uma matriz (2d)
 --                  list    row        col    
-eval2dArrayAcess :: Type -> Type ->  Type -> Type
-eval2dArrayAcess (Type.List numRows _ list)  (Type.Int rowIndex)   (Type.Int columnIndex) = accessArray (columnIndex + rowIndex*numRows) list
-eval2dArrayAcess type index_row index_col  = error ("Indice não é um inteiro")
+evalMatrixAcess :: Type -> Type ->  Type -> Type
+evalMatrixAcess (Type.List numRows _ list)  (Type.Int rowIndex)   (Type.Int columnIndex) = accessArray (columnIndex + rowIndex*numRows) list
+evalMatrixAcess type index_row index_col  = error ("Indice não é um inteiro")
 
 
 
 
 
 --Eval para criar array (1d)
--- 't' sera o valor atribuido na inicializacao
+--  't' é o valor que iremos utilizar para inicializar a array/matrix
+                -- t       length
 evalCreateArray :: Type -> Type  -> Type
 evalCreateArray t (Type.Int length) = Type.List length 1 (createArray length t)
 
 
 --Eval para criar matriz (array 2d)
+--  't' é o valor que iremos utilizar para inicializar a array/matrix
+            --       t      rows   cols    
 evalCreateMatrix :: Type -> Type -> Type  -> Type
 evalCreateMatrix t (Type.Int numRows) (Type.Int numCols) = Type.List numRows numCols (createArray numRows*numCols t)
+
+
+
+
+            --         Type.List   rowIndex     newValue
+evalArrayAssignment :: Type ->      Type ->      Type -> [Type]
+evalArrayAssignment (Type.List numRows _ list) (Type.Int rowIndex) (Type.Int newValue) = assignValueArray rowIndex newValue list
+evalArrayAssignment list type_index new_value = error ("Indice não é um inteiro")
+
+            --         Type.List      rowIndex  colIndex    newValue
+evalMatrixAssignment :: Type ->      Type ->   Type ->     Type     -> [Type]
+evalMatrixAssignment (Type.List numRows numCols list) (Type.Int rowIndex) (Type.Int colIndex) (Type.Int newValue) = assignValueArray (columnIndex + rowIndex*numRows) newValue list
+evalMatrixAssignment type index_row index_col new_value  = error ("Indice não é um inteiro")
+
 
 
 
@@ -127,22 +144,9 @@ accessArray index (x:xs)
                         | otherwise = error ("Access out of bounds!") --Some error message
 
 
-
 --Eval para criar um array (1d ou 2d)
 createArray :: Int -> Type -> [Type]
 createArray length v = replicate length v
-
-
-
-            --         Type.List   rowIndex     newValue
-evalArrayAssignment :: Type ->      Type ->      Type -> [Type]
-evalArrayAssignment (Type.List numRows _ list) (Type.Int rowIndex) (Type.Int newValue) = assignValueArray rowIndex newValue list
-evalArrayAssignment list type_index new_value = error ("Indice não é um inteiro")
-
-            --         Type.List      rowIndex  colIndex    newValue
-eval2dArrayAssignment :: Type ->      Type ->   Type ->     Type     -> [Type]
-evalArrayAssignment (Type.List numRows numCols list) (Type.Int rowIndex) (Type.Int colIndex) (Type.Int newValue) = assignValueArray (columnIndex + rowIndex*numRows) newValue list
-evalArrayAssignment type index_row index_col new_value  = error ("Indice não é um inteiro")
 
 
 --Eval para atribuir um valor a alguma posicao da array (1d ou 2d)
