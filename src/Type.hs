@@ -1,13 +1,14 @@
 module Type where
+import Data.Array (listArray)
 
-data Type = Bool Bool                       | 
+data Type = Bool Bool                       |
             Int Int                         |
-            Real Double                     | 
-            Char Char                       | 
+            Real Double                     |
+            Char Char                       |
             String String                   |
-            List Int Int  [Type]                |
+            List Int Int [Type]            |
             Struct String [(String, Type)]  |
-            Ref String String               
+            Ref String String
             deriving (Eq,Show)
 
 getTypeName :: Type -> String
@@ -16,7 +17,7 @@ getTypeName (Type.Int _) = "int"
 getTypeName (Type.Real _) = "real"
 getTypeName (Type.Char _) = "char"
 getTypeName (Type.String _) = "string"
-getTypeName (Type.List _ _) = "list"
+getTypeName Type.List {} = "list"
 getTypeName (Type.Struct name _) = name
 getTypeName (Type.Ref _ _) = "ref"
 
@@ -35,7 +36,7 @@ printVal (Type.Int v) = putStr (show v)
 printVal (Type.Real v) = putStr (show v)
 printVal (Type.Char v) = putStr (show v)
 printVal (Type.String v) = putStr (show v)
-printVal (Type.List _ v) = putStr (show v)
+printVal (Type.List _  _ v) = putStr (show v)
 printVal (Type.Struct name _) =  putStr name
 printVal (Type.Ref v ref) = putStr (ref++"["++show v++"]")
 
@@ -49,7 +50,7 @@ printVals [] = putStr ""
 
 getStructFieldInner :: [(String, Type)] -> String -> Type
 getStructFieldInner [] _ = error "deu ruim"
-getStructFieldInner ((name, value):values) field 
+getStructFieldInner ((name, value):values) field
     | field == name = value
     | otherwise = getStructFieldInner values field
 
@@ -64,11 +65,11 @@ compatible (Type.Struct name1 _) (Type.Struct name2 _) = name1 == name2
 compatible (Type.Ref x1 _) (Type.Ref x2 _) = x1 == x2
 compatible _ _ = False
 
-ifRefOf :: Type -> Type -> Bool 
+ifRefOf :: Type -> Type -> Bool
 ifRefOf (Type.Ref x _) t = x == getTypeName t
 ifRefOf _ _ = False
 
-isRefType :: Type -> Bool 
+isRefType :: Type -> Bool
 isRefType (Type.Ref _ _) = True
 isRefType _ = False
 
@@ -83,3 +84,7 @@ getRefKey _ = ""
 -- getRefValue :: Type -> Type
 -- getRefValue (Type.Ref v _) = v
 -- getRefValue a = error ("Não é do Tipo Ref!: " ++ show a)
+
+getValuesList :: Type -> [Type]
+getValuesList (Type.List _ _ lista) = lista
+getValuesList _ = error "Não é uma lista"

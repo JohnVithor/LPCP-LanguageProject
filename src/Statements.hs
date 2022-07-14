@@ -9,6 +9,7 @@ import TokenParser
 import Declarations
 import Expressions
 import GHC.IO.Unsafe (unsafePerformIO)
+import Eval
 
 structCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 structCreation x = do
@@ -57,7 +58,7 @@ args x = try (do
 initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 initialization x t = (do
         c <- assignToken
-        (d, r) <- refInitialization x <|> try (funcCall x) <|> try(structCreation x) <|> expression x <|> readStatement x <|> createInit x 
+        (d, r) <- refInitialization x <|> try (funcCall x) <|> try(structCreation x) <|> expression x <|> readStatement x <|> createInit x
         return (c:d, r))
         <|>
         (do
@@ -90,11 +91,11 @@ createInit x = do
 funcCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 funcCall x = do
         a <- idToken
-        b <- beginExpressionToken 
+        b <- beginExpressionToken
         (c,vs) <- args x
         d <- endExpressionToken
         if x then do
-                s <- getState 
+                s <- getState
                 let (name, _, ts, inst) = getSubProg (getIdData a) s
                 inp <- getInput
                 setInput inst
@@ -260,11 +261,11 @@ statement x =
 procedureCall ::Bool -> ParsecT [Token] MyState IO [Token]
 procedureCall x = do
         a <- idToken
-        b <- beginExpressionToken 
+        b <- beginExpressionToken
         (c,vs) <- args x
         d <- endExpressionToken
         if x then do
-                s <- getState 
+                s <- getState
                 let (name, _, ts, inst) = getSubProg (getIdData a) s
                 inp <- getInput
                 setInput inst
@@ -281,11 +282,11 @@ procedureCall x = do
                 return (a:b:c++[d])
         else return (a:b:c++[d])
 
-createVarsArgs :: [(String, Type)] -> [Maybe Type] -> ParsecT [Token] MyState IO [Token] 
+createVarsArgs :: [(String, Type)] -> [Maybe Type] -> ParsecT [Token] MyState IO [Token]
 createVarsArgs [] [] = return []
 createVarsArgs [] _ = error "mais argumentos do que o necessário"
 createVarsArgs _ [] = error "faltam argumentos"
-createVarsArgs ((name,ty):ts) (v:vals) = 
+createVarsArgs ((name,ty):ts) (v:vals) =
         if compatible ty (fromJust v) then do
                 let var = (name, fromJust v, False)
                 updateState(symtableInsert var)
@@ -423,46 +424,53 @@ whileLoop x = do
 --Parser para obter o valor armazenado de alguma posicao em uma array
 arrayAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 arrayAccess execMode = do
-                
+
                 name <- idToken
                 (rowIndex, rowIndexValue) <- subscript execMode
                 (colIndex, colIndexValue) <- subscript execMode
 
                 if execMode then do
                         s <- getState
-                        let (_, lista, _) = symTableGetValue (getIdData name) s
+                        let (_, lista, _) = symtableGetValue (getIdData name) s
 
-                        if colIndex == [] then do
-                                result <- evalArrayAcess lista rowIndexValue
-                                return (name:rowIndex:colIndex, result) 
+                        if null colIndex then do
+                                let result = evalArrayAcess lista rowIndexValue
+                                return (name:rowIndex++colIndex, Just result)
                         else do
-                                result <- evalMatrixAcess lista rowIndexValue colIndexValue
-                                return (name:rowIndex:colIndex, result)
+                                let result = evalMatrixAcess lista rowIndexValue colIndexValue
+                                return (name:rowIndex++colIndex, Just result)
                 else do
-                        return (name:rowIndex:colIndex, Nothing)
+                        return (name:rowIndex++colIndex, Nothing)
 
 
-
+-- lista;
+-- lista[4];
 --parser para alterar o valor de alguma posicao de uma lista
 arrayModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-arrayModification execMode = do 
+arrayModification execMode = do
                         name <- idToken
                         (rowIndex, rowIndexValue) <- subscript execMode
                         (colIndex, colIndexValue) <- subscript execMode
-                        (init, newValue) <- initialization execMode
-                        
                         if execMode then do
                                 s <- getState
-                                let (_, list, _) = symTableGetValue (getIdData name) s
-
-                                if colIndex == [] do
-                                        result <- evalArrayAssignment lista rowIndexValue newValue
-                                        return (name:rowIndex:init, result)
+                                let (key, lista, constFlag) = symtableGetValue (getIdData name) s
+                                if null colIndex then do
+                                        let defaultValue = evalArrayAcess lista rowIndexValue
+                                        (initTok, newValue) <- initialization execMode defaultValue
+                                        let result = evalArrayAssignment lista rowIndexValue (fromJust newValue)
+                                        let var = (key, result, constFlag)
+                                        updateState(symtableUpdate True result var)
+                                        return (name:rowIndex++initTok, Just result)
                                 else do
-                                        result <- evalMatrixAssignment lista rowIndexValue colIndexValue newValue
-                                        return (name:rowIndex:colIndex:init, result)
+                                        let defaultValue = evalMatrixAcess lista rowIndexValue colIndexValue
+                                        (initTok, newValue) <- initialization execMode defaultValue
+                                        let result = evalMatrixAssignment lista rowIndexValue colIndexValue (fromJust newValue)
+                                        let var = (key, result, constFlag)
+                                        updateState(symtableUpdate True result var)
+                                        return (name:rowIndex++colIndex++initTok, Just result)
                         else do
-                               return (name:rowIndex:colIndex:init, Nothing)  
+                                (initTok, _) <- initialization execMode (Type.Bool False)
+                                return (name:rowIndex++colIndex++initTok, Nothing)
 
 
 
@@ -472,18 +480,17 @@ arrayModification execMode = do
 arrayCreation :: Bool -> ParsecT [Token] MyState IO [Token]
 arrayCreation execMode = do
                         (tokens, types) <- dataType
-                        (rowIndex, rowValue) <- subscript execMode 
+                        (rowIndex, rowValue) <- subscript execMode
                         (colIndex, colValue) <- subscript execMode
                         name <- idToken
-                        
+
                         if execMode then do
                                 s <- getState
-                                
-                                if colIndex == [] then do
+                                if null colIndex then do
                                         result <- evalCreateArray rowValue types
                                         updateState(symtableInsert (name, result, False))       -- (identificador, lista, é constante)
                                         return (tokens:rowIndex:name)
-                                        
+
                                 else do
                                         result <- evalCreateMatrix rowValue colValue types
                                         updateState(symtableInsert (name, result, False))       -- (identificador, lista, é constante)
