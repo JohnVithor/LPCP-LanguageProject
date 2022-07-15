@@ -434,10 +434,10 @@ arrayAccess execMode = do
                         let (_, lista, _) = symtableGetValue (getIdData name) s
 
                         if null colIndex then do
-                                let result = evalArrayAcess lista rowIndexValue
+                                let result = evalArrayAcess lista (fromJust rowIndexValue)
                                 return (name:rowIndex++colIndex, Just result)
                         else do
-                                let result = evalMatrixAcess lista rowIndexValue colIndexValue
+                                let result = evalMatrixAcess lista (fromJust rowIndexValue) (fromJust colIndexValue)
                                 return (name:rowIndex++colIndex, Just result)
                 else do
                         return (name:rowIndex++colIndex, Nothing)
@@ -455,16 +455,16 @@ arrayModification execMode = do
                                 s <- getState
                                 let (key, lista, constFlag) = symtableGetValue (getIdData name) s
                                 if null colIndex then do
-                                        let defaultValue = evalArrayAcess lista rowIndexValue
+                                        let defaultValue = evalArrayAcess lista (fromJust rowIndexValue)
                                         (initTok, newValue) <- initialization execMode defaultValue
-                                        let result = evalArrayAssignment lista rowIndexValue (fromJust newValue)
+                                        let result = evalArrayAssignment lista (fromJust rowIndexValue) (fromJust newValue)
                                         let var = (key, result, constFlag)
                                         updateState(symtableUpdate True result var)
                                         return (name:rowIndex++initTok, Just result)
                                 else do
-                                        let defaultValue = evalMatrixAcess lista rowIndexValue colIndexValue
+                                        let defaultValue = evalMatrixAcess lista (fromJust rowIndexValue) (fromJust colIndexValue)
                                         (initTok, newValue) <- initialization execMode defaultValue
-                                        let result = evalMatrixAssignment lista rowIndexValue colIndexValue (fromJust newValue)
+                                        let result = evalMatrixAssignment lista (fromJust rowIndexValue) (fromJust colIndexValue) (fromJust newValue)
                                         let var = (key, result, constFlag)
                                         updateState(symtableUpdate True result var)
                                         return (name:rowIndex++colIndex++initTok, Just result)
@@ -476,34 +476,35 @@ arrayModification execMode = do
 
 --int[10] a;            colIndex == []
 --int[10][2] a;         colIndex != []
-
+-- minhalista;
 arrayCreation :: Bool -> ParsecT [Token] MyState IO [Token]
 arrayCreation execMode = do
-                        (tokens, types) <- dataType
+                        (tks, types) <- dataType
                         (rowIndex, rowValue) <- subscript execMode
-                        (colIndex, colValue) <- subscript execMode
-                        name <- idToken
+                        if null rowIndex then error "faltando primeiro indice"
+                        else do
+                                (colIndex, colValue) <- subscript execMode
+                                name <- idToken
+                                if execMode then do
+                                        if null colIndex then do
+                                                let result = evalCreateArray (fromJust rowValue) types
+                                                updateState(symtableInsert (getIdData name, result, False))       -- (identificador, lista, é constante)
+                                                return (tks++rowIndex++[name])
 
-                        if execMode then do
-                                s <- getState
-                                if null colIndex then do
-                                        result <- evalCreateArray rowValue types
-                                        updateState(symtableInsert (name, result, False))       -- (identificador, lista, é constante)
-                                        return (tokens:rowIndex:name)
+                                        else do
+                                                let result = evalCreateMatrix (fromJust rowValue) (fromJust colValue) types
+                                                updateState(symtableInsert (getIdData name, result, False))       -- (identificador, lista, é constante)
+                                                return (tks++rowIndex++colIndex++[name])
 
                                 else do
-                                        result <- evalCreateMatrix rowValue colValue types
-                                        updateState(symtableInsert (name, result, False))       -- (identificador, lista, é constante)
-                                        return (tokens:rowIndex:colIndex:name)
-
-                        else do
-                                return (tokens:rowIndex:colIndex:name)
+                                        return (tks++rowIndex++colIndex++[name])
 
 --parser para lidar com o operador []
-subscript :: Bool -> ParsecT [Token] MyState IO ([Token], Type)
+subscript :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 subscript execMode = do
                         a <- beginListConstToken
                         (index, value) <- expression execMode
                         c <- endListConstToken
-                        return (a:index:[c], value)
-                        <|> ([], Nothing)
+                        return (a:index++[c], value)
+                        <|> return ([], Nothing)
+

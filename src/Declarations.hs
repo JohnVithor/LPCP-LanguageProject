@@ -38,8 +38,7 @@ dataType :: ParsecT [Token] MyState IO ([Token],Type)
 dataType = refDataType <|> do
         s <- getState
         t <- typeToken <|> idToken
-        (r, v) <- listType (typeTableGet t s)
-        return (t:r, v)
+        return ([t], typeTableGet t s)
 
 refDataType :: ParsecT [Token] MyState IO ([Token],Type)
 refDataType = do
@@ -53,11 +52,3 @@ getNameOfThat (Type _ x) = x
 getNameOfThat (Id _ x) = x
 getNameOfThat _ = error "Não é válido"
 
-listType :: Type -> ParsecT [Token] MyState IO ([Token],Type)
-listType t = try (do
-        b <- beginListConstToken
-        c <- endListConstToken
-        (r, v) <- listType (Type.List t [])
-        return (b:c:r, v)
-        -- melhorar isso aqui depois
-        ) <|> return ([], t)

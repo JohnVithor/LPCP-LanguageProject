@@ -1,15 +1,6 @@
-begin struct Node: 
-    ref Node next;
-    int value;
-end Node;
-
-begin int func(int a):
-    a = a*a;
-    return a;
-end func;
-
 begin int main():
-    int n1 = func(5);
-    print(n1);
+    int[10] n1;
+    //n1[1] = 1;
+    print(n1[1]);
     return 1;
 end main;
