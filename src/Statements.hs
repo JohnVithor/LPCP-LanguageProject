@@ -57,7 +57,8 @@ args x = try (do
 initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 initialization x t = (do
         c <- assignToken
-        (d, r) <- refInitialization x <|> try (funcCall x) <|> try(structCreation x) <|> expression x <|> readStatement x <|> createInit x 
+        (d, r) <- refInitialization x <|> expression x <|> readStatement x <|> createInit x -- <|> structCreation x
+        -- (d, r) <- refInitialization x <|> try (expression x)-- <|> try() <|> readStatement x <|> createInit x
         return (c:d, r))
         <|>
         (do
@@ -122,8 +123,8 @@ varAssignment x = do
                 else do
                         (c, v) <- initialization x (fromJust ov)
                         if isRefType oldValue then do
-                                if compatible (fromJust ov) (fromJust v) then
-                                        do
+                                if compatible (fromJust ov) (fromJust v) then do
+                                        liftIO (print (show ov ++ show v))
                                         nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
                                         let var = (key, oldValue, constFlag)
                                         updateState(symtableUpdate True nv var)
@@ -207,6 +208,7 @@ statements x = (do
                 (a,v1) <- statement x
                 b <- semiColonToken
                 s <- getState
+                liftIO (print a)
                 liftIO (print (getSymbolTbl s))
                 if x then do
                         if isJust v1 then do
@@ -243,11 +245,11 @@ statement x =
 procedureCall ::Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 procedureCall x = do
         a <- idToken
-        b <- beginExpressionToken 
+        b <- beginExpressionToken
         (c,vs) <- args x
         d <- endExpressionToken
         if x then do
-                s <- getState 
+                s <- getState
                 let (name, _, ts, inst) = getSubProg (getIdData a) s
                 inp <- getInput
                 setInput inst
@@ -264,16 +266,16 @@ procedureCall x = do
                 return (a:b:c++[d],Nothing)
         else return (a:b:c++[d],Nothing)
 
-createVarsArgs :: [(String, Type)] -> [Maybe Type] -> ParsecT [Token] MyState IO [Token] 
+createVarsArgs :: [(String, Type)] -> [Maybe Type] -> ParsecT [Token] MyState IO [Token]
 createVarsArgs [] [] = return []
 createVarsArgs [] _ = error "mais argumentos do que o necessário"
 createVarsArgs _ [] = error "faltam argumentos"
-createVarsArgs ((name,ty):ts) (v:vals) = 
+createVarsArgs ((name,ty):ts) (v:vals) =
         if compatible ty (fromJust v) then do
                 let var = (name, fromJust v, False)
                 updateState(symtableInsert var)
                 createVarsArgs ts vals
-        else error ("Tipos incompatíveis" ++ show ty ++ " e o tipo "++ show (fromJust v))
+        else error ("Tipos incompatíveis: " ++ show ty ++ " e o tipo "++ show (fromJust v))
 
 
 isReturnToken :: Token -> Bool
@@ -310,7 +312,7 @@ ifConditional x = do
                 f <- colonToken
                 if x then do
                     let r = getLogExprResult (fromJust v)
-                    if r then do 
+                    if r then do
                         updateState enterScope
                         (g,ret) <- statements True
                         updateState cleanVarsScope
@@ -319,7 +321,7 @@ ifConditional x = do
                         i <- ifToken
                         (j,_) <- elseConditional False
                         return (a:b:c:d++e:f:g++h:i:j,ret)
-                    else do 
+                    else do
                         (g,_) <- statements False
                         h <- endScopeToken
                         i <- ifToken
@@ -398,7 +400,7 @@ expression x = try (do
         <|> try (do
                 (a,r) <- stringExpr x
                 return (a,r))
-        <|> ( do 
+        <|> ( do
                 a <- castingToken
                 (b, v) <- expression x
                 if x then return (a:b, Just (cast a (fromJust v)))
@@ -408,9 +410,9 @@ expression x = try (do
 castingToken :: ParsecT [Token] u IO Token
 castingToken = castingBoolToken
         <|> castingIntToken
-        <|> castingRealToken 
-        <|> castingCharToken 
-        <|> castingStringToken  
+        <|> castingRealToken
+        <|> castingCharToken
+        <|> castingStringToken
 
 -- Parser inicial para expressões numéricas (soma e subtração)
 numExpr :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
@@ -429,7 +431,7 @@ evalRemaining x n1 = try(do
                 if x then do
                         let e = eval (fromJust n1) op (fromJust n2)
                         (t3, r) <- evalRemaining x (Just e)
-                        return (op:t2++t3, r) 
+                        return (op:t2++t3, r)
                 else do
                         (t3, r) <- evalRemaining x Nothing
                         return (op:t2++t3, r))
@@ -452,7 +454,7 @@ numFactor x = try (do
                 return ([tk], Just tp)
                 ) <|> try (getVar x False)
                 <|> try ( do
-                a <- minusToken 
+                a <- minusToken
                 (b, v) <- numFactor x
                 if x then do return (a:b, Just (evalUni a (fromJust v)))
                 else return (a:b, Nothing )
@@ -509,7 +511,7 @@ logFactor x =   try (do
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
                 ) <|> do
-                        b <- nullToken 
+                        b <- nullToken
                         (a,v) <- getVar x True
                         if x then do
                                 return (b:a,Just (Type.Bool (isRefNull (fromJust v))))
@@ -520,10 +522,13 @@ logFactor x =   try (do
 
 getVar :: Bool -> Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 getVar x y = try (do
+        (a, b) <- funcCall x
+        return (a,b))
+        <|> (do
         a <- idToken
         s <- getState
         if x then do
-                if y then do 
+                if y then do
                         let (_, oldValue, _) = symtableGetVar (getIdData a) s
                         (_, _, _, ov) <- dotAccess x (Just oldValue)
                         return ([a], ov)
@@ -534,7 +539,7 @@ getVar x y = try (do
         else do
                 (b, _, _, _) <- dotAccess x Nothing
                 return (a:b,Nothing)
-        ) <|> funcCall x
+        )
 
 dotAccess :: Bool -> Maybe Type -> ParsecT [Token] MyState IO ([Token], [Maybe Type], [String] ,Maybe Type)
 dotAccess x v = (do
@@ -591,7 +596,7 @@ stringExpr x = try (do
 -- Expressão envolvendo strings ou chars ou id
 -- TODO: verificar o tipo de idToken
 stringFactor :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
-stringFactor x = try (do 
+stringFactor x = try (do
                 (tk, tp) <- stringToken <|> charToken
                 return ([tk], Just tp))
                <|> getVar x False
@@ -599,12 +604,11 @@ stringFactor x = try (do
 funcCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 funcCall x = do
         a <- idToken
-        b <- beginExpressionToken 
+        b <- beginExpressionToken
         (c,vs) <- args x
         d <- endExpressionToken
-        --liftIO (print "funccall")
         if x then do
-                s <- getState 
+                s <- getState
                 let (name, _, ts, inst) = getSubProg (getIdData a) s
                 inp <- getInput
                 setInput inst

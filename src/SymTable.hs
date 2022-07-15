@@ -18,7 +18,7 @@ getSubProg :: String -> MyState -> Subprogram
 getSubProg key (_, _, subs, _, _, _) =  getSubProgInner subs key
 
 getSubProgInner :: [Subprogram] -> String -> Subprogram
-getSubProgInner [] key = error (key++" not found")
+getSubProgInner [] key = error ("subprograma: '"++key++"' não encontrado")
 getSubProgInner ((name, t, args, stmts):subs) key =
                                if name == key then (name, t, args, stmts)
                                else getSubProgInner subs key
