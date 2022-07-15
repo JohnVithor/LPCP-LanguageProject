@@ -7,13 +7,13 @@ end node;
 begin ref node create_node(int v):
   ref node n = create node;
   n.value = v;
-  n.left = NULL;
-  n.right = NULL;
+  n.left;
+  n.right;
   return n;
 end create_node;
 
-begin ref node insert(node *n, int v):
-    begin if (n == NULL):
+begin ref node insert(ref node n, int v):
+    begin if (NULL n):
         return create_node(v);
     end if;
     begin if (v < n.value):
@@ -26,29 +26,29 @@ begin ref node insert(node *n, int v):
 end insert;
 
 begin int find_min(ref node n):
-    begin if(n.left != NULL):
+    begin if(not NULL n.left):
         find_min(n.left, min);
     end if;
-    begin if(n.left == NULL):
+    begin if(NULL n.left):
         return n.value;
     end if;
 end find_min;
 
 begin int find_max(ref node n):
-    begin if(n.right != NULL):
+    begin if(not NULL n.right):
         find_max(n.right, min);
     end if;
-    begin if(n.right == NULL):
+    begin if(NULL n.right):
         return n.value;
     end if;
 end find_max;
 
 begin print_tree(ref node n, int lvl):
     print("lvl" + lvl ": " + n.value);
-    begin if(n.right != NULL):
+    begin if(not NULL n.right):
         print_tree(n.right, lvl + 1);
     end if;
-    begin if(n.left != NULL):
+    begin if(not NULL n.left):
         print_tree(n.left, lvl + 1);
     end if;
 end print_tree;
