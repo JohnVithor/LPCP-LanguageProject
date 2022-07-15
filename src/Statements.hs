@@ -184,7 +184,7 @@ returnCall :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 returnCall x = do
         -- TODO: pensar em como voltar para o lugar que chamou a função e devolver esse valor
         a <- returnToken
-        (tk, tp) <- expression x
+        (tk, tp) <- expression x <|> refInitialization x
         return (a:tk,tp)
         -- expression
 
@@ -206,8 +206,8 @@ statements :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 statements x = (do
                 (a,v1) <- statement x
                 b <- semiColonToken
-                -- s <- getState
-                -- liftIO (print (getSymbolTbl s))
+                s <- getState
+                liftIO (print (getSymbolTbl s))
                 if x then do
                         if isJust v1 then do
                                 (c,_) <- statements False
@@ -273,7 +273,7 @@ createVarsArgs ((name,ty):ts) (v:vals) =
                 let var = (name, fromJust v, False)
                 updateState(symtableInsert var)
                 createVarsArgs ts vals
-        else error "Tipos incompatíveis"
+        else error ("Tipos incompatíveis" ++ show ty ++ " e o tipo "++ show (fromJust v))
 
 
 isReturnToken :: Token -> Bool
@@ -424,7 +424,7 @@ numExpr x = try (do
 evalRemaining :: Bool -> Maybe Type -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 evalRemaining x n1 = try(do
                 op <- plusToken <|> minusToken
-                liftIO (print "sum")
+                --liftIO (print "sum")
                 (t2, n2) <- numTerm x
                 if x then do
                         let e = eval (fromJust n1) op (fromJust n2)
@@ -508,7 +508,13 @@ logFactor x =   try (do
                 c <- endExpressionToken
                 if x then return ([a] ++ tk ++ [c], tp)
                 else return ([a] ++ tk ++ [c],Nothing)
-                )
+                ) <|> do
+                        b <- nullToken 
+                        (a,v) <- getVar x True
+                        if x then do
+                                return (b:a,Just (Type.Bool (isRefNull (fromJust v))))
+                        else return (b:a,Nothing)
+
                 -- IN
                 -- IS
 
@@ -596,7 +602,7 @@ funcCall x = do
         b <- beginExpressionToken 
         (c,vs) <- args x
         d <- endExpressionToken
-        liftIO (print "funccall")
+        --liftIO (print "funccall")
         if x then do
                 s <- getState 
                 let (name, _, ts, inst) = getSubProg (getIdData a) s
@@ -612,6 +618,6 @@ funcCall x = do
                 updateState (callFunc oldScope)
                 updateState (setCurrentScope oldCount)
                 setInput inp
-                liftIO (print "funccall end")
+                --liftIO (print "funccall end")
                 return (a:b:c++[d], ret)
         else return (a:b:c++[d],Nothing)

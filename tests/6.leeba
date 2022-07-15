@@ -13,8 +13,9 @@ begin ref node create_node(int v):
 end create_node;
 
 begin ref node insert(ref node n, int v):
-    begin if (NULL n):
-        return create_node(v);
+    begin if(NULL n):
+        ref node m = create_node(v);
+        return m;
     end if;
     begin if (v < n.value):
         n.left = insert(n.left, v);
@@ -22,7 +23,7 @@ begin ref node insert(ref node n, int v):
     begin else:
         n.right = insert(n.right, v);
     end else;
-  return node;
+  return n;
 end insert;
 
 begin int find_min(ref node n):
@@ -44,7 +45,7 @@ begin int find_max(ref node n):
 end find_max;
 
 begin print_tree(ref node n, int lvl):
-    print("lvl" + lvl ": " + n.value);
+    //print("lvl" + lvl ": " + n.value);
     begin if(not NULL n.right):
         print_tree(n.right, lvl + 1);
     end if;

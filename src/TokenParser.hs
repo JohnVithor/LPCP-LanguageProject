@@ -300,3 +300,8 @@ castingStringToken :: ParsecT [Token] u IO Token
 castingStringToken = tokenPrim show updatePos get_token where
   get_token (CastingString p) = Just (CastingString p)
   get_token _      = Nothing
+
+nullToken :: ParsecT [Token] u IO Token
+nullToken = tokenPrim show updatePos get_token where
+  get_token (Lexer.Null p) = Just (Lexer.Null p)
+  get_token _          = Nothing

@@ -18,6 +18,7 @@ tokens :-
   "create"                             { \p s -> Create p}
   "destroy"                            { \p s -> Destroy p}
   "ref"                                { \p s -> Ref p}
+  "NULL"                               { \p s -> Null p}
   "begin"                              { \p s -> BeginScope p}
   "end"                                { \p s -> EndScope p}
   "constant"                           { \p s -> Constant p}
@@ -91,6 +92,7 @@ data Token =
   Create              AlexPosn	|
   Destroy             AlexPosn	|
   Ref                 AlexPosn	|
+  Null                AlexPosn  |
   BeginScope          AlexPosn	|
   EndScope            AlexPosn	|
   Constant            AlexPosn	|
@@ -151,6 +153,7 @@ token_posn (Struct           p) = p
 token_posn (Create           p) = p
 token_posn (Destroy          p) = p
 token_posn (Ref              p) = p
+token_posn (Null             p) = p
 token_posn (BeginScope       p) = p
 token_posn (EndScope         p) = p
 token_posn (Constant         p) = p

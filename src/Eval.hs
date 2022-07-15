@@ -86,3 +86,8 @@ getStmts (_, _, _, stmts) = stmts
 
 getArgs :: Subprogram -> [(String, Type)]
 getArgs (_, _, args, _) = args
+
+
+isRefNull :: Type -> Bool 
+isRefNull (Type.Ref _ ref) = ref == ""
+isRefNull _ = error "Operação de null aplicável apenas para referências"

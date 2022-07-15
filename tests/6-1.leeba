@@ -74,9 +74,5 @@ begin int main():
     int max = find_max(a.head);   
     print(min);
     print(max);
-
-    //print("Minimo: " + find_min(tree));
-    //print("Maximo: " + find_min(tree));
-    //print_tree(tree, 0);
     return 1;
 end main;
