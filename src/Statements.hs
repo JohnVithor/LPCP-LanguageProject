@@ -6,7 +6,6 @@ import Text.Parsec
 import Control.Monad.IO.Class
 import SymTable
 import TokenParser
-import Declarations
 import Expressions
 import GHC.IO.Unsafe (unsafePerformIO)
 import Eval
@@ -251,6 +250,7 @@ statement x =
         <|> destroyCall x
         <|> try (procedureCall x)
         <|> try (varCreation x)
+        <|> try (arrayModification x)
         <|> try (varAssignment x)
         <|> try (ifConditional x)
         <|> whileLoop x
@@ -419,34 +419,11 @@ whileLoop x = do
 
 
 
---example[20]
---example[20][5]
---Parser para obter o valor armazenado de alguma posicao em uma array
-arrayAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-arrayAccess execMode = do
-
-                name <- idToken
-                (rowIndex, rowIndexValue) <- subscript execMode
-                (colIndex, colIndexValue) <- subscript execMode
-
-                if execMode then do
-                        s <- getState
-                        let (_, lista, _) = symtableGetValue (getIdData name) s
-
-                        if null colIndex then do
-                                let result = evalArrayAcess lista (fromJust rowIndexValue)
-                                return (name:rowIndex++colIndex, Just result)
-                        else do
-                                let result = evalMatrixAcess lista (fromJust rowIndexValue) (fromJust colIndexValue)
-                                return (name:rowIndex++colIndex, Just result)
-                else do
-                        return (name:rowIndex++colIndex, Nothing)
-
 
 -- lista;
 -- lista[4];
 --parser para alterar o valor de alguma posicao de uma lista
-arrayModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+arrayModification :: Bool -> ParsecT [Token] MyState IO [Token]
 arrayModification execMode = do
                         name <- idToken
                         (rowIndex, rowIndexValue) <- subscript execMode
@@ -459,52 +436,95 @@ arrayModification execMode = do
                                         (initTok, newValue) <- initialization execMode defaultValue
                                         let result = evalArrayAssignment lista (fromJust rowIndexValue) (fromJust newValue)
                                         let var = (key, result, constFlag)
-                                        updateState(symtableUpdate True result var)
-                                        return (name:rowIndex++initTok, Just result)
+                                        updateState(symtableUpdate False result var)
+                                        return (name:rowIndex++initTok)
                                 else do
                                         let defaultValue = evalMatrixAcess lista (fromJust rowIndexValue) (fromJust colIndexValue)
                                         (initTok, newValue) <- initialization execMode defaultValue
                                         let result = evalMatrixAssignment lista (fromJust rowIndexValue) (fromJust colIndexValue) (fromJust newValue)
                                         let var = (key, result, constFlag)
                                         updateState(symtableUpdate True result var)
-                                        return (name:rowIndex++colIndex++initTok, Just result)
+                                        return (name:rowIndex++colIndex++initTok)
                         else do
                                 (initTok, _) <- initialization execMode (Type.Bool False)
-                                return (name:rowIndex++colIndex++initTok, Nothing)
+                                return (name:rowIndex++colIndex++initTok)
 
 
 
 --int[10] a;            colIndex == []
 --int[10][2] a;         colIndex != []
 -- minhalista;
-arrayCreation :: Bool -> ParsecT [Token] MyState IO [Token]
-arrayCreation execMode = do
-                        (tks, types) <- dataType
-                        (rowIndex, rowValue) <- subscript execMode
-                        if null rowIndex then error "faltando primeiro indice"
-                        else do
-                                (colIndex, colValue) <- subscript execMode
-                                name <- idToken
-                                if execMode then do
-                                        if null colIndex then do
-                                                let result = evalCreateArray (fromJust rowValue) types
-                                                updateState(symtableInsert (getIdData name, result, False))       -- (identificador, lista, é constante)
-                                                return (tks++rowIndex++[name])
+arrayCreation :: ParsecT [Token] MyState IO ([Token],Type)
+arrayCreation = do
+                t <- typeToken <|> idToken
+                s <- getState
+                let (tks, types) = ([t], typeTableGet t s)
+                a <- beginListConstToken
+                (rowIndex, rowValue) <- intToken 
+                c <- endListConstToken
+                (colIndex, colValue) <- getCol
+                if null colIndex then do
+                        let result = evalCreateArray rowValue types
+                        return (tks++[a,rowIndex,c],result)
 
-                                        else do
-                                                let result = evalCreateMatrix (fromJust rowValue) (fromJust colValue) types
-                                                updateState(symtableInsert (getIdData name, result, False))       -- (identificador, lista, é constante)
-                                                return (tks++rowIndex++colIndex++[name])
+                else do
+                        let result = evalCreateMatrix rowValue (fromJust colValue) types
+                        return (tks++[a,rowIndex,c]++colIndex,result)
 
-                                else do
-                                        return (tks++rowIndex++colIndex++[name])
 
---parser para lidar com o operador []
-subscript :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-subscript execMode = do
-                        a <- beginListConstToken
-                        (index, value) <- expression execMode
-                        c <- endListConstToken
-                        return (a:index++[c], value)
-                        <|> return ([], Nothing)
+getCol :: ParsecT [Token] MyState IO ([Token], Maybe Type)
+getCol = do
+        a <- beginListConstToken
+        (colIndex, colValue) <- intToken 
+        c <- endListConstToken
+        return (a:colIndex:[c], Just colValue)
+        <|> return ([],Nothing)
 
+
+structDeclaration :: ParsecT [Token] MyState IO [Token]
+structDeclaration = do
+            b <- structToken
+            c <- idToken
+            d <- colonToken
+            (e, fields) <- fieldCreations
+            f <- endScopeToken
+            g <- idToken
+            if getIdData c /= getIdData g then error "Nome da struct não é o mesmo"
+            else
+                do
+                h <- semiColonToken
+                updateState(typeTableInsert (Type.Struct (getIdData c) fields))
+                return (b:c:d:e++[f,g,h])
+
+fieldCreations :: ParsecT [Token] MyState IO ([Token],[(String, Type)])
+fieldCreations = (do
+                    (c, f) <- fieldCreation
+                    (cs, fs) <- fieldCreations
+                    return (c++cs, f:fs))
+                    <|> return ([], [])
+
+fieldCreation :: ParsecT [Token] MyState IO ([Token],(String, Type))
+fieldCreation = do
+            (a, t) <- dataType
+            b <- idToken
+            c <- semiColonToken 
+            return (a++b:[c],(getIdData b, t))
+
+dataType :: ParsecT [Token] MyState IO ([Token],Type)
+dataType = refDataType <|> try arrayCreation 
+        <|> (do
+        s <- getState
+        t <- typeToken <|> idToken
+        return ([t], typeTableGet t s)
+        )
+
+refDataType :: ParsecT [Token] MyState IO ([Token],Type)
+refDataType = do
+        r <- refToken 
+        t <- typeToken <|> idToken
+        return (r:[t], Type.Ref (getNameOfThat t) "")
+
+getNameOfThat :: Token -> String 
+getNameOfThat (Type _ x) = x
+getNameOfThat (Id _ x) = x
+getNameOfThat _ = error "Não é válido"

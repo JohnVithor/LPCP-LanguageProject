@@ -1,6 +1,7 @@
 begin int main():
     int[10] n1;
-    //n1[1] = 1;
-    print(n1[1]);
+    int i = 2;
+    n1[2] = 3+3;
+    print(n1[i]);
     return 1;
 end main;

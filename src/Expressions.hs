@@ -6,6 +6,7 @@ import Text.Parsec
 import SymTable
 import TokenParser
 import Eval
+import Control.Monad.IO.Class
 
 --TODO: campos de structs, acesso a array, chamada de função, casting 
 
@@ -127,7 +128,8 @@ logFactor x =   try (do
                 -- IS
 
 getVar :: Bool -> Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-getVar x y = try (do
+getVar x y = try (arrayAccess x)
+        <|> (do
         a <- idToken
         s <- getState
         if x then do
@@ -203,3 +205,38 @@ stringFactor x = try (do
                 (tk, tp) <- stringToken <|> charToken
                 return ([tk], Just tp))
                <|> getVar x False
+
+
+--example[20]
+--example[20][5]
+--Parser para obter o valor armazenado de alguma posicao em uma array
+arrayAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+arrayAccess execMode = do
+                name <- idToken
+                (rowIndex, rowIndexValue) <- subscript execMode
+                (colIndex, colIndexValue) <- subscript execMode
+                if execMode then do
+                        -- liftIO(print rowIndexValue)
+                        s <- getState
+                        let (_, lista, _) = symtableGetValue (getIdData name) s
+                        if null colIndex then do
+                                let result = evalArrayAcess lista (fromJust rowIndexValue)
+                                -- liftIO(print result)
+                                return (name:rowIndex++colIndex, Just result)
+                        else do
+                                let result = evalMatrixAcess lista (fromJust rowIndexValue) (fromJust colIndexValue)
+                                return (name:rowIndex++colIndex, Just result)
+                else do
+                        return (name:rowIndex++colIndex, Nothing)
+
+--parser para lidar com o operador []
+subscript :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+subscript execMode = do
+                        a <- beginListConstToken
+                        (index, value) <- expression execMode
+                        liftIO (print ("exec"++show execMode))
+                        liftIO (print index)
+                        liftIO (print value)
+                        c <- endListConstToken
+                        return (a:index++[c], value)
+                        <|> return ([], Nothing)

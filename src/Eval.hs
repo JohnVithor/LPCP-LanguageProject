@@ -111,8 +111,8 @@ evalMatrixAcess _ _ _  = error "Indice não é um inteiro"
 --  't' é o valor que iremos utilizar para inicializar a array/matrix
                 -- t       length
 evalCreateArray :: Type -> Type  -> Type
-evalCreateArray t (Type.Int l) = Type.List l 1 (createArray l t)
-evalCreateArray _ _ = error "deu ruim"
+evalCreateArray (Type.Int l) t  = Type.List l 1 (createArray l t)
+evalCreateArray _ _ = error "deu ruim na criação do array"
 
 
 --Eval para criar matriz (array 2d)
@@ -120,7 +120,7 @@ evalCreateArray _ _ = error "deu ruim"
             --       t      rows   cols    
 evalCreateMatrix :: Type -> Type -> Type  -> Type
 evalCreateMatrix t (Type.Int numRows) (Type.Int numCols) = Type.List numRows numCols (createArray (numRows*numCols) t)
-evalCreateMatrix _ _ _ = error "deu ruim"
+evalCreateMatrix _ _ _ = error "deu ruim na criação da matriz"
 
 
 
@@ -139,11 +139,11 @@ evalMatrixAssignment _ _ _ _  = error "Indice não é um inteiro"
 
 --Eval para acessar alguma posicao da lista (array 1d ou array 2d)
 accessArray :: Int -> [Type] -> Type
+accessArray _ [] = error "array vazio"
 accessArray index (x:xs)
                         | index > 0 = accessArray (index-1) xs
                         | index == 0 = x
                         | otherwise = error "Access out of bounds!" --Some error message
-accessArray _ _ = error "deu ruim"
 
 --Eval para criar um array (1d ou 2d)
 createArray :: Int -> Type -> [Type]

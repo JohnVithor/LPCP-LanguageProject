@@ -1,5 +1,4 @@
 module Type where
-import Data.Array (listArray)
 
 data Type = Bool Bool                       |
             Int Int                         |
@@ -63,6 +62,7 @@ compatible (Type.Char _) (Type.Char _) = True
 compatible (Type.Bool _) (Type.Bool _) = True
 compatible (Type.Struct name1 _) (Type.Struct name2 _) = name1 == name2
 compatible (Type.Ref x1 _) (Type.Ref x2 _) = x1 == x2
+compatible (Type.List rows1 cols1 _) (Type.List rows2 cols2 _) = rows1 == rows2 && cols1 == cols2
 compatible _ _ = False
 
 ifRefOf :: Type -> Type -> Bool
