@@ -1,40 +1,117 @@
 begin int main():
-	real[2][2] M0;
-	real[2][2] M1;
-	// ler dados
-	int i = 0;
-	int j = 0;
-	int k = 0;
-	int M0_len = 2;
-	int M1_len = 2;
-	real[2][2] M_sum;
-	real[2][2] M_prod;
-	real prod_sum;
-	begin while (i < M0_len):
-		begin while (j < M1_len):
-			prod_sum = 0;
-			M_sum[i][j] = M0[i][j] + M1[i][j];
-			begin while (i < M0_len):
-				prod_sum = prod_sum + M0[i][k]*M1[k][j];
-			end while;
-			M_prod[i][j] = prod_sum;
+    real[15][15] M0;
+    real[15][15] M1;
+    
+    real[15][15] M_sum;
+    real[15][15] M_prod;
+
+    int i = 0;
+    int j = 0;
+    int k = 0;
+
+	string r;
+
+    print("Numero de linhas da 1a matriz:");
+	r = read;
+	newline;
+    int M0_lines = (int) r;
+    print("Numero de colunas da 1a matriz:");
+	r = read;
+	newline;
+    int M0_cols = (int) r;
+    print("Numero de linhas da 2a matriz:");
+	r = read;
+	newline;
+    int M1_lines = (int) r;
+    print("Numero de colunas da 2a matriz:");
+	r = read;
+	newline;
+    int M1_cols = (int) r;
+
+	begin while (i < M0_lines):
+		begin while (j < M0_cols):
+			r = read;
+			M0[i][j] = (real) r;
+			j = j + 1;
 		end while;
+		j = 0;
+		i = i + 1;
 	end while;
-	print("Soma: ");
-	begin while (i < M0_len):
-		begin while (j < M1_len):
-			print(M_sum[i][j]);
+	i = 0;
+
+	begin while (i < M1_lines):
+		begin while (j < M1_cols):
+			r = read;
+			M1[i][j] = (real) r;
+			j = j + 1;
 		end while;
+		j = 0;
+		i = i + 1;
 	end while;
-	
-	begin if (M0_len != M1_len;):
-		print("impossivel multiplicar")
-	end if;
-	begin else:
-		begin while (i < M0_len):
-			begin while (j < M1_len):
-				print(M_prod[i][j]);
-			end while;
-		end while;
-	end else;
+	i = 0;
+
+    begin if(M0_cols != M1_lines):
+        print("impossivel multiplicar");
+		newline;
+    end if
+    begin else:
+            real prod_sum;
+            begin while (i < M0_cols):
+                begin while (j < M1_lines):
+                    prod_sum = 0;
+                    begin while (k < M0_cols):
+                        prod_sum = prod_sum + M0[i][k]*M1[k][j];
+                        k = k + 1;
+                    end while;
+					k = 0;
+                    M_prod[i][j] = prod_sum;
+                    j = j + 1;
+                end while;
+				j = 0;
+                i = i + 1;
+            end while;
+			i = 0;
+            print("Produto:");
+			newline;
+			begin while (i < M0_cols):
+				begin while (j < M1_lines):
+                    print(M_prod[i][j]);
+					print(" ");
+					j = j + 1;
+				end while;
+				j = 0;
+				newline;
+				i = i + 1;
+            end while;
+			i = 0;
+    end else;
+    begin if(M0_cols != M1_cols and  M0_lines != M1_lines):
+        print("impossivel somar");
+		newline;
+    end if
+    begin else:
+            begin while (i < M0_cols):
+                begin while (j < M1_lines):
+                    M_sum[i][j] = M0[i][j] + M1[i][j];
+                    j = j + 1;
+                end while;
+				j = 0;
+                i = i + 1;
+            end while;
+			i = 0;
+            print("Soma:");
+			newline;
+			begin while (i < M1_lines):
+				begin while (j < M1_cols):
+                    print(M_sum[i][j]);
+					print(" ");
+					j = j + 1;
+				end while;
+				j = 0;
+				newline;
+				i = i + 1;
+            end while;
+			i=0;
+    end else;
+	return 1;
 end main;

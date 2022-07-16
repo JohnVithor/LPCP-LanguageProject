@@ -72,7 +72,11 @@ begin int main():
     a.head = insert(a.head, 2);
     int min = find_min(a.head);
     int max = find_max(a.head);   
+    print("O minimo é: ");
     print(min);
+    newline;
+    print("O máximo é: ");
     print(max);
+    newline;
     return 1;
 end main;

@@ -33,11 +33,11 @@ printVal :: Type -> IO()
 printVal (Type.Bool v) = putStr (show v)
 printVal (Type.Int v) = putStr (show v)
 printVal (Type.Real v) = putStr (show v)
-printVal (Type.Char v) = putStr (show v)
-printVal (Type.String v) = putStr (show v)
+printVal (Type.Char v) = putChar v
+printVal (Type.String v) = putStr v
 printVal (Type.List _ _ v) = putStr (show v)
 printVal (Type.Struct name _) =  putStr name
-printVal (Type.Ref v ref) = putStr (ref++"["++show v++"]")
+printVal (Type.Ref v ref) = putStr (v++"["++ref++"]")
 
 printVals ::[(String, Type)] -> IO()
 printVals ((_,v):vs) = do
@@ -56,12 +56,15 @@ getStructFieldInner ((name, value):values) field
 
 compatible :: Type -> Type -> Bool
 compatible (Type.Int _) (Type.Int _) = True
+compatible (Type.Int _) (Type.Real _) = True
 compatible (Type.Real _) (Type.Real _) = True
+compatible (Type.Real _) (Type.Int _) = True
 compatible (Type.String _) (Type.String _) = True
 compatible (Type.Char _) (Type.Char _) = True
 compatible (Type.Bool _) (Type.Bool _) = True
 compatible (Type.Struct name1 _) (Type.Struct name2 _) = name1 == name2
 compatible (Type.Ref x1 _) (Type.Ref x2 _) = x1 == x2
+compatible (Type.List rows1 cols1 _) (Type.List rows2 cols2 _) = rows1 == rows2 && cols1 == cols2
 compatible _ _ = False
 
 ifRefOf :: Type -> Type -> Bool 

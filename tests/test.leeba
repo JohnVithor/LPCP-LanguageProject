@@ -1,67 +1,11 @@
-begin struct node:
-    int value;
-    ref node left;
-    ref node right;
-end node;
-
-begin ref node create_node(int v):
-  ref node n = create node;
-  n.value = v;
-  return ref n;
-end create_node;
-
-begin ref node insert(ref node n, int v):
-    begin if(NULL n):
-        return create_node(v);
-    end if;
-    begin if (v < n.value):
-        n.left = insert(ref n.left, v);
-    end if
-    begin else:
-        n.right = insert(ref n.right, v);
-    end else;
-  return ref n;
-end insert;
-
-begin int find_min(ref node n):
-    begin if(not NULL n.left):
-        return find_min(n.left);
-    end if;
-    begin if(NULL n.left):
-        return n.value;
-    end if;
-end find_min;
-
-begin int find_max(ref node n):
-    begin if(not NULL n.right):
-        return find_max(n.right);
-    end if;
-    begin if(NULL n.right):
-        return n.value;
-    end if;
-end find_max;
-
-begin print_tree(ref node n, int lvl):
-    //print("lvl" + lvl ": " + n.value);
-    begin if(not NULL n.right):
-        print_tree(n.right, lvl + 1);
-    end if;
-    begin if(not NULL n.left):
-        print_tree(n.left, lvl + 1);
-    end if;
-end print_tree;
-
 begin int main():
+    int[10] n1;
     int i = 0;
-    ref node tree = create node;
-    tree = insert(tree, 3);
-    
-    //begin while(i < 10):
-    //    tree = insert(ref tree, (i*17)%10);
-    //    i = i + 1;
-    //end while;
-    //print("Minimo: " + find_min(tree));
-    //print("Maximo: " + find_min(tree));
-    //print_tree(tree, 0);
+    int a = 3;
+    begin while(i < 10):
+        n1[i] = i;
+        i = i+1;
+    end while;
+    print(n1);
     return 1;
 end main;

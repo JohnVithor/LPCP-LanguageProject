@@ -91,3 +91,72 @@ getArgs (_, _, args, _) = args
 isRefNull :: Type -> Bool 
 isRefNull (Type.Ref _ ref) = ref == ""
 isRefNull _ = error "Operação de null aplicável apenas para referências"
+
+
+-- Eval para acessar alguma posicao de uma array (1d)
+            -- Type.List  rowIndex
+evalArrayAcess :: Type -> Type  -> Type
+evalArrayAcess (Type.List _ _ list) (Type.Int rowIndex) = accessArray rowIndex list
+evalArrayAcess _ _ = error "Indice não é um inteiro"
+
+
+
+-- Eval para acessar alguma posicao de uma matriz (2d)
+--                  list    row        col    
+evalMatrixAcess :: Type -> Type ->  Type -> Type
+evalMatrixAcess (Type.List numRows _ list)  (Type.Int rowIndex)   (Type.Int columnIndex) = accessArray (columnIndex + rowIndex*numRows) list
+evalMatrixAcess _ _ _  = error "Indice não é um inteiro"
+
+
+
+
+
+--Eval para criar array (1d)
+--  't' é o valor que iremos utilizar para inicializar a array/matrix
+                -- t       length
+evalCreateArray :: Type -> Type  -> Type
+evalCreateArray t (Type.Int l) = Type.List l 1 (createArray l t)
+evalCreateArray _ _ = error "deu ruim na criação do array"
+
+
+--Eval para criar matriz (array 2d)
+--  't' é o valor que iremos utilizar para inicializar a array/matrix
+            --       t      rows   cols    
+evalCreateMatrix :: Type -> Type -> Type  -> Type
+evalCreateMatrix t (Type.Int numRows) (Type.Int numCols) = Type.List numRows numCols (createArray (numRows*numCols) t)
+evalCreateMatrix _ _ _ = error "deu ruim na criação da matriz"
+
+
+
+            --         Type.List   rowIndex     newValue
+evalArrayAssignment :: Type ->      Type ->      Type -> Type
+evalArrayAssignment (Type.List rows cols list) (Type.Int rowIndex) newValue = Type.List rows cols (assignValueArray rowIndex newValue list)
+evalArrayAssignment _ _ _ = error "Indice não é um inteiro"
+
+            --         Type.List      rowIndex  colIndex    newValue
+evalMatrixAssignment :: Type ->      Type ->   Type ->     Type     -> Type
+evalMatrixAssignment (Type.List numRows numCols list) (Type.Int rowIndex) (Type.Int colIndex) newValue = Type.List numRows numCols (assignValueArray (colIndex + rowIndex*numCols) newValue list)
+evalMatrixAssignment _ _ _ _  = error "Indice não é um inteiro"
+
+
+
+
+--Eval para acessar alguma posicao da lista (array 1d ou array 2d)
+accessArray :: Int -> [Type] -> Type
+accessArray _ [] = error "array vazio"
+accessArray index (x:xs)
+                        | index > 0 = accessArray (index-1) xs
+                        | index == 0 = x
+                        | otherwise = error "Access out of bounds!" --Some error message
+
+--Eval para criar um array (1d ou 2d)
+createArray :: Int -> Type -> [Type]
+createArray = replicate
+
+--Eval para atribuir um valor a alguma posicao da array (1d ou 2d)
+assignValueArray :: Int -> Type -> [Type] -> [Type]
+assignValueArray index value (x:xs)
+                                | index > 0 = x:assignValueArray (index-1) value xs
+                                | index < 0 = error "Access out of bounds!" --Some error message
+                                | otherwise = value:xs
+assignValueArray _ _ _ = error "deu ruim"

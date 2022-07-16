@@ -64,40 +64,74 @@ end inv;
 
 
 begin int main():
-	rational_t a = frac(2,4);
-	print(a.num);
-	print(a.den);
-	
-	rational_t b = frac(5,8);
-	print(b.num);
-	print(b.den);
-	
-	bool r = eq(a,b);
-	print(r);
+    rational_t a = frac(2,4);
+    print("Retorno funcao frac: ");
+    newline;
+    print(a.num);
+    print("/");
+    print(a.den);
+    newline;
 
-	rational_t c = sum(a,b);
-	print(c.num);
-	print(c.den);
+    rational_t b = frac(5,8);
+    print("Retorno funcao frac: ");
+    newline;
+    print(b.num);
+    print("/");
+    print(b.den);
+    newline;
 
-	rational_t d = sub(a,b);
-	print(d.num);
-	print(d.den);
-	
-	rational_t e = neg(d);
-	print(e.num);
-	print(e.den);
+    bool r = eq(a,b);
+    print("Retorno funcao eq: ");
+    print(r);
+    newline;
 
-	rational_t f = prod(a,b);
-	print(f.num);
-	print(f.den);
+    rational_t c = sum(a,b);
+    print("Retorno funcao sum: ");
+    newline;
+    print(c.num);
+    print("/");
+    print(c.den);
+    newline;
 
-	rational_t g = div(a,b);
-	print(g.num);
-	print(g.den);
+    rational_t d = sub(a,b);
+    print("Retorno funcao sub: ");
+    newline;
+    print(d.num);
+    print("/");
+    print(d.den);
+    newline;
 
-	rational_t h = inv(g);
-	print(h.num);
-	print(h.den);
+    print("Retorno funcao neg: ");
+    newline;
+    rational_t e = neg(d);
+    print(e.num);
+    print("/");
+    print(e.den);
+    newline;
 
-	return 1;
+    rational_t f = prod(a,b);
+    print("Retorno funcao prod: ");
+    newline;
+    print(f.num);
+    print("/");
+    print(f.den);
+    newline;
+
+    rational_t g = div(a,b);
+    print("Retorno funcao div: ");
+    newline;
+    print(g.num);
+    print("/");
+    print(g.den);
+    newline;
+
+    rational_t h = inv(g);
+    print("Retorno funcao inv: ");
+    newline;
+    print(h.num);
+    print("/");
+    print(h.den);
+    newline;
+
+    return 1;
 end main;

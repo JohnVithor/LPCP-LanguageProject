@@ -3,4 +3,6 @@ begin int main():
 	real y = 5.2;
 	int c = 2;
 	print(x*x - y + c);
+	newline;
+	return 1;
 end main;

@@ -305,3 +305,8 @@ nullToken :: ParsecT [Token] u IO Token
 nullToken = tokenPrim show updatePos get_token where
   get_token (Lexer.Null p) = Just (Lexer.Null p)
   get_token _          = Nothing
+
+newLineToken :: ParsecT [Token] u IO Token
+newLineToken = tokenPrim show updatePos get_token where
+  get_token (Lexer.NewLine p) = Just (Lexer.NewLine p)
+  get_token _          = Nothing

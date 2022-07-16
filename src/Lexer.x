@@ -30,6 +30,7 @@ tokens :-
   "continue"                           { \p s -> Continue p}
   "return"                             { \p s -> Return p}
   "print"                              { \p s -> Print p}
+  "newline"                            { \p s -> NewLine p}
   "read"                               { \p s -> Read p}
   "if"                                 { \p s -> If p}
   "else"                               { \p s -> Else p}
@@ -104,6 +105,7 @@ data Token =
   Continue            AlexPosn	|
   Return              AlexPosn	|
   Print               AlexPosn	|
+  NewLine             AlexPosn  |
   Read                AlexPosn	|
   If                  AlexPosn	|
   Else                AlexPosn	|
@@ -165,6 +167,7 @@ token_posn (Break            p) = p
 token_posn (Continue         p) = p
 token_posn (Return           p) = p
 token_posn (Print            p) = p
+token_posn (NewLine          p) = p
 token_posn (Read             p) = p
 token_posn (If               p) = p
 token_posn (Else             p) = p

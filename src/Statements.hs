@@ -9,6 +9,57 @@ import TokenParser
 import Declarations
 import GHC.IO.Unsafe (unsafePerformIO)
 import Eval
+import GHC.IO (unsafePerformIO)
+
+
+structDeclaration :: ParsecT [Token] MyState IO [Token]
+structDeclaration = do
+            b <- structToken
+            c <- idToken
+            d <- colonToken
+            (e, fields) <- fieldCreations
+            f <- endScopeToken
+            g <- idToken
+            if getIdData c /= getIdData g then error "Nome da struct não é o mesmo"
+            else
+                do
+                h <- semiColonToken
+                updateState(typeTableInsert (Type.Struct (getIdData c) fields))
+                return (b:c:d:e++[f,g,h])
+
+fieldCreations :: ParsecT [Token] MyState IO ([Token],[(String, Type)])
+fieldCreations = (do
+                    (c, f) <- fieldCreation
+                    (cs, fs) <- fieldCreations
+                    return (c++cs, f:fs))
+                    <|> return ([], [])
+
+fieldCreation :: ParsecT [Token] MyState IO ([Token],(String, Type))
+fieldCreation = do
+            (a, t) <- dataType
+            b <- idToken
+            c <- semiColonToken 
+            return (a++b:[c],(getIdData b, t))
+
+dataType :: ParsecT [Token] MyState IO ([Token],Type)
+dataType = refDataType <|> try arrayCreation 
+        <|> (do
+        s <- getState
+        t <- typeToken <|> idToken
+        return ([t], typeTableGet t s)
+        )
+
+refDataType :: ParsecT [Token] MyState IO ([Token],Type)
+refDataType = do
+        r <- refToken 
+        t <- typeToken <|> idToken
+        return (r:[t], Type.Ref (getNameOfThat t) "")
+
+getNameOfThat :: Token -> String 
+getNameOfThat (Type _ x) = x
+getNameOfThat (Id _ x) = x
+getNameOfThat _ = error "Não é válido"
+
 
 structCreation :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 structCreation x = do
@@ -124,7 +175,6 @@ varAssignment x = do
                         (c, v) <- initialization x (fromJust ov)
                         if isRefType oldValue then do
                                 if compatible (fromJust ov) (fromJust v) then do
-                                        liftIO (print (show ov ++ show v))
                                         nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
                                         let var = (key, oldValue, constFlag)
                                         updateState(symtableUpdate True nv var)
@@ -208,8 +258,7 @@ statements x = (do
                 (a,v1) <- statement x
                 b <- semiColonToken
                 s <- getState
-                liftIO (print a)
-                liftIO (print (getSymbolTbl s))
+                -- liftIO (print (getSymbolTbl s))
                 if x then do
                         if isJust v1 then do
                                 (c,_) <- statements False
@@ -231,9 +280,11 @@ isSemiColon _ = False
 statement :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type )
 statement x =
         printStatement x
+        <|> newLineStatement x
         <|> destroyCall x
         <|> try (ifConditional x)
         <|> try (procedureCall x)
+        <|> try (arrayModification x)
         <|> try (varCreation x)
         <|> try (varAssignment x)
         <|> whileLoop x
@@ -290,14 +341,23 @@ printStatement x = do
         d <- endExpressionToken
         if x then do
                 liftIO (printVal (fromJust v))
-                liftIO (putStrLn "")
                 return (a:b:c++[d],Nothing)
         else return (a:b:c++[d],Nothing)
 
+newLineStatement :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
+newLineStatement x = do
+        a <- newLineToken
+        if x then do
+                liftIO (putStrLn "")
+                return ([a],Nothing)
+        else return ([a],Nothing)
+
+{-# NOINLINE readStatement #-}
 readStatement :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 readStatement x = do
         a <- readToken
-        if x then return ([a], Just (Type.String (unsafePerformIO getLine)))
+        let v = unsafePerformIO getLine
+        if x then return ([a], Just (Type.String v))
         else return ([a], Nothing)
 
 
@@ -521,10 +581,10 @@ logFactor x =   try (do
                 -- IS
 
 getVar :: Bool -> Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
-getVar x y = try (do
+getVar x y =  try (do
         (a, b) <- funcCall x
         return (a,b))
-        <|> (do
+        <|> try (arrayAccess x) <|> (do
         a <- idToken
         s <- getState
         if x then do
@@ -625,3 +685,99 @@ funcCall x = do
                 --liftIO (print "funccall end")
                 return (a:b:c++[d], ret)
         else return (a:b:c++[d],Nothing)
+
+-- lista;
+-- lista[4];
+--parser para alterar o valor de alguma posicao de uma lista
+arrayModification :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+arrayModification execMode = do
+                        name <- idToken
+                        a <- beginListConstToken
+                        (rowIndex, rowIndexValue) <- expression execMode
+                        c <- endListConstToken
+                        (colIndex, colIndexValue) <- subscript execMode
+                        if execMode then do
+                                s <- getState
+                                let (key, lista, constFlag) = symtableGetValue (getIdData name) s
+                                if null colIndex then do
+                                        let defaultValue = evalArrayAcess lista (fromJust rowIndexValue)
+                                        (initTok, newValue) <- initialization execMode defaultValue
+                                        let result = evalArrayAssignment lista (fromJust rowIndexValue) (fromJust newValue)
+                                        let var = (key, result, constFlag)
+                                        updateState(symtableUpdate False result var)
+                                        return (name:a:rowIndex++c:initTok, Nothing)
+                                else do
+                                        let defaultValue = evalMatrixAcess lista (fromJust rowIndexValue) (fromJust colIndexValue)
+                                        (initTok, newValue) <- initialization execMode defaultValue
+                                        let result = evalMatrixAssignment lista (fromJust rowIndexValue) (fromJust colIndexValue) (fromJust newValue)
+                                        let var = (key, result, constFlag)
+                                        updateState(symtableUpdate False result var)
+                                        return (name:a:rowIndex++c:colIndex++initTok, Nothing)
+                        else do
+                                (initTok, _) <- initialization execMode (Type.Bool False)
+                                return (name:a:rowIndex++c:colIndex++initTok, Nothing)
+
+
+
+--int[10] a;            colIndex == []
+--int[10][2] a;         colIndex != []
+-- minhalista;
+arrayCreation :: ParsecT [Token] MyState IO ([Token],Type)
+arrayCreation = do
+                t <- typeToken <|> idToken
+                s <- getState
+                let (tks, types) = ([t], typeTableGet t s)
+                a <- beginListConstToken
+                (rowIndex, rowValue) <- intToken 
+                c <- endListConstToken
+                (colIndex, colValue) <- getCol
+                if null colIndex then do
+                        let result = evalCreateArray types rowValue 
+                        return (tks++[a,rowIndex,c],result)
+
+                else do
+                        let result = evalCreateMatrix types rowValue (fromJust colValue) 
+                        return (tks++[a,rowIndex,c]++colIndex,result)
+
+
+getCol :: ParsecT [Token] MyState IO ([Token], Maybe Type)
+getCol = do
+        a <- beginListConstToken
+        (colIndex, colValue) <- intToken 
+        c <- endListConstToken
+        return (a:colIndex:[c], Just colValue)
+        <|> return ([],Nothing)
+
+
+--example[20]
+--example[20][5]
+--Parser para obter o valor armazenado de alguma posicao em uma array
+arrayAccess :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+arrayAccess execMode = do
+                name <- idToken
+                a <- beginListConstToken
+                (rowIndex, rowIndexValue) <- expression execMode
+                c <- endListConstToken
+                (colIndex, colIndexValue) <- subscript execMode
+                if execMode then do
+                        -- liftIO(print rowIndexValue)
+                        s <- getState
+                        let (_, lista, _) = symtableGetValue (getIdData name) s
+                        if null colIndex then do
+                                let result = evalArrayAcess lista (fromJust rowIndexValue)
+                                -- liftIO(print result)
+                                return (name:a:rowIndex++c:colIndex, Just result)
+                        else do
+                                let result = evalMatrixAcess lista (fromJust rowIndexValue) (fromJust colIndexValue)
+                                return (name:a:rowIndex++c:colIndex, Just result)
+                else do
+                        return (name:a:rowIndex++c:colIndex, Nothing)
+
+--parser para lidar com o operador []
+subscript :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
+subscript execMode = do
+                        a <- beginListConstToken
+                        (index, value) <- expression execMode
+                        c <- endListConstToken
+                        return (a:index++[c], value)
+                        <|> return ([], Nothing)
