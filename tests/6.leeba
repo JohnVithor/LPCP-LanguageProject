@@ -6,29 +6,30 @@ end node;
 
 begin ref node create_node(int v):
   ref node n = create node;
+  newline;
   n.value = v;
   n.left;
   n.right;
-  return n;
+  return ref n;
 end create_node;
 
 begin ref node insert(ref node n, int v):
     begin if(NULL n):
         ref node m = create_node(v);
-        return m;
+        return ref m;
     end if;
     begin if (v < n.value):
-        n.left = insert(n.left, v);
+        n.left = ref insert(ref n.left, v);
     end if
     begin else:
-        n.right = insert(n.right, v);
+        n.right = ref insert(ref n.right, v);
     end else;
-  return n;
+  return ref n;
 end insert;
 
 begin int find_min(ref node n):
     begin if(not NULL n.left):
-        find_min(n.left, min);
+        find_min(ref n.left, min);
     end if;
     begin if(NULL n.left):
         return n.value;
@@ -37,7 +38,7 @@ end find_min;
 
 begin int find_max(ref node n):
     begin if(not NULL n.right):
-        find_max(n.right, min);
+        find_max(ref n.right, min);
     end if;
     begin if(NULL n.right):
         return n.value;
@@ -47,10 +48,10 @@ end find_max;
 begin print_tree(ref node n, int lvl):
     //print("lvl" + lvl ": " + n.value);
     begin if(not NULL n.right):
-        print_tree(n.right, lvl + 1);
+        print_tree(ref n.right, lvl + 1);
     end if;
     begin if(not NULL n.left):
-        print_tree(n.left, lvl + 1);
+        print_tree(ref n.left, lvl + 1);
     end if;
 end print_tree;
 
@@ -59,13 +60,20 @@ begin int main():
     int i = 0;
     begin while(i < 10):
         tree_arr[i] = (i*17)%10;
+        i = i + 1;
     end while;
+    i = 0;
     ref node tree = create node;
     begin while(i < 10):
-        tree = insert(tree, tree_arr[i]);
+        tree = ref insert(ref tree, i+10);
+        i = i + 1;
     end while;
-    print("Minimo: " + find_min(tree));
-    print("Maximo: " + find_min(tree));
-    print_tree(tree, 0);
+    print("Minimo: ");
+    print(find_min(ref tree));
+    newline;
+    print("Maximo: ");
+    print(find_max(ref tree));
+    newline;
+    //print_tree(ref tree, 0);
     return 1;
 end main;

@@ -125,9 +125,13 @@ symtableUpdateInner :: Bool -> Type -> SymTable -> [SymTable] -> [SymTable]
 symtableUpdateInner _ _ (name, _, _) [] = error ("Variável não encontrada: " ++ name)
 symtableUpdateInner x refVal (name, value, const1) ((name2, value2, const2):t)
     | const1 = error "Não se pode modificar uma constante"
-    | x =   if getRefKey value == name2 then (name2, refVal, const2):t
+    | x =   if getRefKey value == name2 then 
+                if compatible refVal value2 then (name2, refVal, const2):t
+                else error ("(ref on) Não é possivel guardar um " ++ show refVal ++" em um " ++ show value2)
             else (name2, value2, const2) : symtableUpdateInner x refVal (name, value, const1) t
-    | otherwise =   if name == name2 then (name, value, const1):t
+    | otherwise =   if name == name2 then 
+                        if compatible value value2 then (name, value, const1):t  
+                        else error ("(ref off) Não é possivel guardar um " ++ show value ++" em um " ++ show value2)
                     else (name2, value2, const2) : symtableUpdateInner x refVal (name, value, const1) t
 
 symtableRemove :: SymTable -> [SymTable] -> [SymTable]

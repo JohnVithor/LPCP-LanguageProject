@@ -6,7 +6,6 @@ import TokenParser
 import SymTable
 import Type
 import Statements
-import Declarations
 import Subprograms
 import Eval
 

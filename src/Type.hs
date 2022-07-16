@@ -27,7 +27,7 @@ getStructName _ = error "Not a Struct"
 getStructField :: Type -> String -> Type
 getStructField (Type.Struct _ values) field = getStructFieldInner values field
 -- getStructField (Type.Ref (Type.Struct _ values) _) field = getStructFieldInner values field
-getStructField _ _ = error "Not a Struct"
+getStructField t field = error ("Não é possivel acessar o campo '"++field++"' no tipo: " ++show t)
 
 printVal :: Type -> IO()
 printVal (Type.Bool v) = putStr (show v)
@@ -48,7 +48,7 @@ printVals [] = putStr ""
 
 
 getStructFieldInner :: [(String, Type)] -> String -> Type
-getStructFieldInner [] _ = error "deu ruim"
+getStructFieldInner [] field = error ("campo " ++ field++ " não encontrado")
 getStructFieldInner ((name, value):values) field 
     | field == name = value
     | otherwise = getStructFieldInner values field
@@ -67,9 +67,9 @@ compatible (Type.Ref x1 _) (Type.Ref x2 _) = x1 == x2
 compatible (Type.List rows1 cols1 _) (Type.List rows2 cols2 _) = rows1 == rows2 && cols1 == cols2
 compatible _ _ = False
 
-ifRefOf :: Type -> Type -> Bool 
-ifRefOf (Type.Ref x _) t = x == getTypeName t
-ifRefOf _ _ = False
+isRefOf :: Type -> Type -> Bool 
+isRefOf (Type.Ref x _) t = x == getTypeName t
+isRefOf _ _ = False
 
 isRefType :: Type -> Bool 
 isRefType (Type.Ref _ _) = True

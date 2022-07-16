@@ -4,9 +4,7 @@ import Type
 import Text.Parsec
 import SymTable
 import TokenParser
-import Declarations
 import Statements
-import Control.Monad.IO.Class (MonadIO(liftIO))
 
 functionCreation :: ParsecT [Token] MyState IO [Token]
 functionCreation = do

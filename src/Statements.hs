@@ -6,10 +6,8 @@ import Text.Parsec
 import Control.Monad.IO.Class
 import SymTable
 import TokenParser
-import Declarations
 import GHC.IO.Unsafe (unsafePerformIO)
 import Eval
-import GHC.IO (unsafePerformIO)
 
 
 structDeclaration :: ParsecT [Token] MyState IO [Token]
@@ -166,8 +164,8 @@ varCreations x = (do
 varAssignment :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 varAssignment x = do
         a <- idToken
-        s <- getState
         if x then do
+                s <- getState
                 let (key, oldValue, constFlag) = symtableGetVar (getIdData a) s
                 (b, st, ns, ov) <- dotAccess x (Just oldValue)
                 if constFlag then error "Não se pode alterar uma constante"
@@ -176,10 +174,16 @@ varAssignment x = do
                         if isRefType oldValue then do
                                 if compatible (fromJust ov) (fromJust v) then do
                                         nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
+                                        -- liftIO(print "old")
+                                        -- liftIO(print oldValue)
+                                        -- liftIO(print "new")
+                                        -- liftIO(print nv)
                                         let var = (key, oldValue, constFlag)
+                                        -- liftIO (print "symtable")
+                                        -- liftIO (print (getSymbolTbl s))
                                         updateState(symtableUpdate True nv var)
                                         return (a:b++c, Nothing)
-                                else if ifRefOf (fromJust ov) (fromJust v) then
+                                else if isRefOf (fromJust ov) (fromJust v) then
                                         do
                                         nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
                                         let var = (key, oldValue, False)
@@ -193,7 +197,7 @@ varAssignment x = do
                                         let var = (key, nv, False)
                                         updateState(symtableUpdate False nv var)
                                         return (a:b++c,Nothing)
-                                else if ifRefOf (fromJust ov) (fromJust v) then
+                                else if isRefOf (fromJust ov) (fromJust v) then
                                         do
                                         nv <- updateStructs (extractTypes st) ns (fromJust ov) (fromJust v)
                                         let var = (key, nv, False)
@@ -216,12 +220,13 @@ updateStructs (st:ss) (name:ts) ref v = do
                         let a = updateStruct st (name,nv) nv
                         return a
                 else do
-                        let var = (getRefKey t, t, False)
+                        let var = ("", t, False)
                         updateState(symtableUpdate True nv var)
-                        let a = updateStruct st (name,t) t
-                        return a
+                        --let a = updateStruct st (name,t) nv
+                        return st
         else do
                 let a = updateStruct st (name,nv) nv
+                -- liftIO(print "aqui?")
                 return a
 updateStructs a b c d = error ("debug: "++show a++" "++show b++" "++show c++" "++show d)
 
@@ -257,8 +262,6 @@ statements :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 statements x = (do
                 (a,v1) <- statement x
                 b <- semiColonToken
-                s <- getState
-                -- liftIO (print (getSymbolTbl s))
                 if x then do
                         if isJust v1 then do
                                 (c,_) <- statements False
@@ -349,6 +352,8 @@ newLineStatement x = do
         a <- newLineToken
         if x then do
                 liftIO (putStrLn "")
+                -- s <- getState 
+                -- liftIO (print (getSymbolTbl s))
                 return ([a],Nothing)
         else return ([a],Nothing)
 
@@ -486,7 +491,6 @@ numExpr x = try (do
 evalRemaining :: Bool -> Maybe Type -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 evalRemaining x n1 = try(do
                 op <- plusToken <|> minusToken
-                --liftIO (print "sum")
                 (t2, n2) <- numTerm x
                 if x then do
                         let e = eval (fromJust n1) op (fromJust n2)
@@ -608,9 +612,13 @@ dotAccess x v = (do
         if x then do
                 let name = getIdData c
                 let tv = fromJust v
-                if isRefType (fromJust v) then do
+                --liftIO(print "out")
+                --liftIO(print tv)
+                if isRefType tv then do
                         s <- getState
                         let (_,refV,_) = symtableGetInner2 (getRefKey tv) (getSymbolTbl s)
+                        --liftIO(print "in")
+                        --liftIO(print refV)
                         let fieldValue = getStructField refV name
                         (d, sts, ns, vv) <- dotAccess x (Just fieldValue)
                         return ([b,c]++d, Just refV:sts, name:ns, vv)
@@ -682,7 +690,6 @@ funcCall x = do
                 updateState (callFunc oldScope)
                 updateState (setCurrentScope oldCount)
                 setInput inp
-                --liftIO (print "funccall end")
                 return (a:b:c++[d], ret)
         else return (a:b:c++[d],Nothing)
 
@@ -760,12 +767,10 @@ arrayAccess execMode = do
                 c <- endListConstToken
                 (colIndex, colIndexValue) <- subscript execMode
                 if execMode then do
-                        -- liftIO(print rowIndexValue)
                         s <- getState
                         let (_, lista, _) = symtableGetValue (getIdData name) s
                         if null colIndex then do
                                 let result = evalArrayAcess lista (fromJust rowIndexValue)
-                                -- liftIO(print result)
                                 return (name:a:rowIndex++c:colIndex, Just result)
                         else do
                                 let result = evalMatrixAcess lista (fromJust rowIndexValue) (fromJust colIndexValue)
