@@ -1,11 +1,6 @@
 begin int main():
-    int[10] n1;
-    int i = 0;
-    int a = 3;
-    begin while(i < 10):
-        n1[i] = i;
-        i = i+1;
-    end while;
-    print(n1);
+    int aba = 3;
+    int b = 2;
+    int a = 21;
     return 1;
 end main;

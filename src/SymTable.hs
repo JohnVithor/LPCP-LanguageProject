@@ -111,8 +111,15 @@ symtableGetInner3 (scope,count,name) [] backup =
     else error ("Variável não encontrada: " ++ name)
 
 symtableInsert :: SymTable -> MyState -> MyState
-symtableInsert (name, value, const1) (symtable, t, subs,count, func, heapCount) = symtableInsertInner (func++"."++show count++"."++name, value, const1) (symtable, t, subs,count, func, heapCount)
+symtableInsert (name, value, const1) (symtable, t, subs,count, func, heapCount)
+    | varNameIsNew name func symtable  = symtableInsertInner (func++"."++show count++"."++name, value, const1) (symtable, t, subs,count, func, heapCount)
+    | otherwise = error ("Não é possivel criar a variável '"++name++"' pois outra com o mesmo nome já existe.")
 
+varNameIsNew :: String -> String -> [SymTable] -> Bool
+varNameIsNew _ _ [] = True
+varNameIsNew name1 func ((name2, _, _):vs)
+    | ((func++".") `isPrefixOf` name2) && (("."++name1) `isSuffixOf` name2)= False
+    | otherwise = varNameIsNew name1 func vs
 
 symtableInsertInner :: SymTable -> MyState -> MyState
 symtableInsertInner symbol ([], t, subs,count, func, heapCount) = ([symbol], t, subs,count, func, heapCount)
