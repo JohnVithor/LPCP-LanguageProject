@@ -8,7 +8,7 @@ import Statements
 
 functionCreation :: ParsecT [Token] MyState IO [Token]
 functionCreation = do
-        (tk, tp) <- dataType
+        (tk, tp, _) <- dataType
         s <- subprogramCreation (Just tp)
         let r = checkReturn s
         if r then return (tk++s)
@@ -31,15 +31,15 @@ subprogramCreation ret = do
         i <- endScopeToken
         j <- idToken
         l <- semiColonToken
-        if getIdData c /= getIdData j then fail "Nome do subprograma não é o mesmo"
+        if getIdData c /= getIdData j then fail "Nome utilizad na declaração do subprograma não é o mesmo"
         else
                 do
                 updateState(subsprogramTableInsert (getIdData c, ret, ps, h))
                 return (c:d:e++f:g:h++i:j:[l])
 
-params :: ParsecT [Token] MyState IO ([Token],[(String, Type)])
+params :: ParsecT [Token] MyState IO ([Token],[(String, Type, Bool)])
 params = try (do
-        (tk, tp) <- param-- <|> refParam
+        (tk, tp) <- param
         c <- commaToken 
         (tks, ps) <- params
         return (tk++c:tks,tp:ps))
@@ -48,16 +48,8 @@ params = try (do
                 return (tk,[tp])
         <|> return ([],[])
 
-param :: ParsecT [Token] MyState IO ([Token],(String, Type))
+param :: ParsecT [Token] MyState IO ([Token],(String, Type, Bool))
 param = do
-        (tk, tp) <- dataType
+        (tk, tp, c) <- dataType
         b <- idToken
-        return (tk, (getIdData b, tp))
-
-refParam :: ParsecT [Token] MyState IO ([Token],(String, Type))
-refParam = do
-        ref <- refToken
-        -- TODO: usar o ref de algum modo
-        (tk, tp) <- dataType
-        b <- idToken
-        return (ref:tk++[b],(getIdData b, tp))
+        return (tk, (getIdData b, tp, c))

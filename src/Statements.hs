@@ -18,7 +18,7 @@ structDeclaration = do
             (e, fields) <- fieldCreations
             f <- endScopeToken
             g <- idToken
-            if getIdData c /= getIdData g then error "Nome da struct não é o mesmo"
+            if getIdData c /= getIdData g then error ("Nome da struct não é o mesmo: '"++getIdData c++"' != '"++getIdData g++"'")
             else
                 do
                 h <- semiColonToken
@@ -34,24 +34,33 @@ fieldCreations = (do
 
 fieldCreation :: ParsecT [Token] MyState IO ([Token],(String, Type))
 fieldCreation = do
-            (a, t) <- dataType
+            (a, t, constant) <- dataType
             b <- idToken
-            c <- semiColonToken 
-            return (a++b:[c],(getIdData b, t))
+            if constant then error ("O campo '"++getIdData b++"' não pode ser constante pois campos de structs não devem ser imutáveis")
+            else do 
+                c <- semiColonToken 
+                return (a++b:[c],(getIdData b, t))
 
-dataType :: ParsecT [Token] MyState IO ([Token],Type)
-dataType = refDataType <|> try arrayCreation 
+dataType :: ParsecT [Token] MyState IO ([Token],Type, Bool)
+dataType = constDataType <|> refDataType <|> try arrayCreation 
         <|> (do
         s <- getState
         t <- typeToken <|> idToken
-        return ([t], typeTableGet t s)
+        return ([t], typeTableGet t s, False)
         )
 
-refDataType :: ParsecT [Token] MyState IO ([Token],Type)
+refDataType :: ParsecT [Token] MyState IO ([Token],Type, Bool)
 refDataType = do
         r <- refToken 
         t <- typeToken <|> idToken
-        return (r:[t], Type.Ref (getNameOfThat t) "")
+        return (r:[t], Type.Ref (getNameOfThat t) "", False)
+
+constDataType :: ParsecT [Token] MyState IO ([Token],Type, Bool)
+constDataType = do
+        r <- constantToken 
+        t <- typeToken <|> idToken
+        s <- getState
+        return (r:[t], typeTableGet t s, True)
 
 getNameOfThat :: Token -> String 
 getNameOfThat (Type _ x) = x
@@ -127,11 +136,11 @@ refInitialization x = do
 createInit :: Bool -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 createInit x = do
         a <- createToken
-        (b, r) <- dataType
+        (b, r, constant) <- dataType
         if x then do
                 s <- getState
                 let name = "heap."++show (getHeapId s)
-                updateState (symtableInsertInner (name, r, False))
+                updateState (symtableInsertInner (name, r, constant))
                 updateState increaseHeapId
                 return (a:b, Just (Type.Ref (getTypeName r) name))
         else return (a:b, Nothing)
@@ -139,7 +148,7 @@ createInit x = do
 
 varCreation :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 varCreation x = do
-            (a, t) <- dataType
+            (a, t, constant) <- dataType
             b <- idToken
             (c, v) <- initialization x t
             if x then do
@@ -148,8 +157,8 @@ varCreation x = do
                          ++ getIdData b++"' não foi possivel ser realizada pois os tipos: '"
                          ++ show t ++ "' e '" ++ show (fromJust v) ++ "' não são compatíveis")
                 else do
-                        -- o False abaixo é para constantes, no momento sem constantes
-                        let var = (getIdData b, fromJust v, False)
+                        let coercedValue = coercion t (fromJust v)
+                        let var = (getIdData b, coercedValue, constant)
                         updateState(symtableInsert var)
                         return (a++[b]++c, Nothing)
                 else
@@ -158,7 +167,7 @@ varCreation x = do
 
 varCreations :: Bool -> ParsecT [Token] MyState IO [Token]
 varCreations x = (do
-                    (c,_) <- varCreation x -- <|> constantDecl
+                    (c,_) <- varCreation x
                     e <- varCreations x
                     return (c++e))
                     <|> return []
@@ -170,12 +179,13 @@ varAssignment x = do
                 s <- getState
                 let (key, oldValue, constFlag) = symtableGetVar (getIdData a) s
                 (b, st, ns, ov) <- dotAccess x (Just oldValue)
-                if constFlag then error "Não se pode alterar uma constante"
+                if constFlag then error ("A variável '"++getIdData a++"' é uma constante e não se pode alterar uma constante")
                 else do
                         (c, v) <- initialization x (fromJust ov)
                         if isRefType oldValue then do
                                 if compatible (fromJust ov) (fromJust v) then do
-                                        nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
+                                        let coercedValue = coercion (fromJust ov) (fromJust v)                                        
+                                        nv <- updateStructs (extractTypes st) ns coercedValue coercedValue
                                         -- liftIO(print "old")
                                         -- liftIO(print oldValue)
                                         -- liftIO(print "new")
@@ -187,7 +197,8 @@ varAssignment x = do
                                         return (a:b++c, Nothing)
                                 else if isRefOf (fromJust ov) (fromJust v) then
                                         do
-                                        nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
+                                        let coercedValue = coercion (fromJust ov) (fromJust v)
+                                        nv <- updateStructs (extractTypes st) ns coercedValue coercedValue
                                         let var = (key, oldValue, False)
                                         updateState(symtableUpdate True nv var)
                                         return (a:b++c,Nothing)
@@ -195,13 +206,15 @@ varAssignment x = do
                         else do
                                 if compatible (fromJust ov) (fromJust v) then
                                         do
-                                        nv <- updateStructs (extractTypes st) ns (fromJust v) (fromJust v)
+                                        let coercedValue = coercion (fromJust ov) (fromJust v)
+                                        nv <- updateStructs (extractTypes st) ns coercedValue coercedValue
                                         let var = (key, nv, False)
                                         updateState(symtableUpdate False nv var)
                                         return (a:b++c,Nothing)
                                 else if isRefOf (fromJust ov) (fromJust v) then
                                         do
-                                        nv <- updateStructs (extractTypes st) ns (fromJust ov) (fromJust v)
+                                        let coercedValue = coercion (fromJust ov) (fromJust v)
+                                        nv <- updateStructs (extractTypes st) ns coercedValue coercedValue
                                         let var = (key, nv, False)
                                         updateState(symtableUpdate True nv var)
                                         return (a:b++c,Nothing)
@@ -324,16 +337,16 @@ procedureCall x = do
                 return (a:b:c++[d],Nothing)
         else return (a:b:c++[d],Nothing)
 
-createVarsArgs :: [(String, Type)] -> [Maybe Type] -> ParsecT [Token] MyState IO [Token]
+createVarsArgs :: [(String, Type, Bool)] -> [Maybe Type] -> ParsecT [Token] MyState IO [Token]
 createVarsArgs [] [] = return []
-createVarsArgs [] _ = error "mais argumentos do que o necessário"
-createVarsArgs _ [] = error "faltam argumentos"
-createVarsArgs ((name,ty):ts) (v:vals) =
+createVarsArgs [] _ = error "Foram informados mais argumentos do que o necessário"
+createVarsArgs _ [] = error "Foram informados menos argumentos do que o necessário"
+createVarsArgs ((name,ty, constant):ts) (v:vals) =
         if compatible ty (fromJust v) then do
-                let var = (name, fromJust v, False)
+                let var = (name, fromJust v, constant)
                 updateState(symtableInsert var)
                 createVarsArgs ts vals
-        else error ("Tipos incompatíveis: " ++ show ty ++ " e o tipo "++ show (fromJust v))
+        else error ("O Tipo '" ++ show ty ++ "' e o tipo '"++ show (fromJust v)++"' são incompatíveis")
 
 
 isReturnToken :: Token -> Bool
@@ -356,8 +369,8 @@ newLineStatement x = do
         a <- newLineToken
         if x then do
                 liftIO (putStrLn "")
-                -- s <- getState 
-                -- liftIO (print (getSymbolTbl s))
+                s <- getState 
+                liftIO (print (getSymbolTbl s))
                 return ([a],Nothing)
         else return ([a],Nothing)
 
@@ -713,17 +726,22 @@ arrayModification execMode = do
                                 if null colIndex then do
                                         let defaultValue = evalArrayAcess lista (fromJust rowIndexValue)
                                         (initTok, newValue) <- initialization execMode defaultValue
-                                        let result = evalArrayAssignment lista (fromJust rowIndexValue) (fromJust newValue)
-                                        let var = (key, result, constFlag)
-                                        updateState(symtableUpdate False result var)
-                                        return (name:a:rowIndex++c:initTok, Nothing)
+                                        if compatible defaultValue (fromJust newValue) then do
+                                                let result = evalArrayAssignment lista (fromJust rowIndexValue) (fromJust newValue)
+                                                let var = (key, result, constFlag)
+                                                updateState(symtableUpdate False result var)
+                                                return (name:a:rowIndex++c:initTok, Nothing)
+                                        else error ("Não são compatíveis: " ++ show defaultValue ++ " - " ++ show (fromJust newValue))
+
                                 else do
                                         let defaultValue = evalMatrixAcess lista (fromJust rowIndexValue) (fromJust colIndexValue)
                                         (initTok, newValue) <- initialization execMode defaultValue
-                                        let result = evalMatrixAssignment lista (fromJust rowIndexValue) (fromJust colIndexValue) (fromJust newValue)
-                                        let var = (key, result, constFlag)
-                                        updateState(symtableUpdate False result var)
-                                        return (name:a:rowIndex++c:colIndex++initTok, Nothing)
+                                        if compatible defaultValue (fromJust newValue) then do
+                                                let result = evalMatrixAssignment lista (fromJust rowIndexValue) (fromJust colIndexValue) (fromJust newValue)
+                                                let var = (key, result, constFlag)
+                                                updateState(symtableUpdate False result var)
+                                                return (name:a:rowIndex++c:colIndex++initTok, Nothing)
+                                        else  error ("Não são compatíveis: " ++ show defaultValue ++ " - " ++ show (fromJust newValue))
                         else do
                                 (initTok, _) <- initialization execMode (Type.Bool False)
                                 return (name:a:rowIndex++c:colIndex++initTok, Nothing)
@@ -733,22 +751,21 @@ arrayModification execMode = do
 --int[10] a;            colIndex == []
 --int[10][2] a;         colIndex != []
 -- minhalista;
-arrayCreation :: ParsecT [Token] MyState IO ([Token],Type)
+arrayCreation :: ParsecT [Token] MyState IO ([Token],Type, Bool)
 arrayCreation = do
                 t <- typeToken <|> idToken
                 s <- getState
                 let (tks, types) = ([t], typeTableGet t s)
                 a <- beginListConstToken
-                (rowIndex, rowValue) <- intToken 
+                (rowIndex, rowValue) <- intToken
                 c <- endListConstToken
                 (colIndex, colValue) <- getCol
                 if null colIndex then do
-                        let result = evalCreateArray types rowValue 
-                        return (tks++[a,rowIndex,c],result)
-
+                        let result = evalCreateArray types rowValue
+                        return (tks++[a,rowIndex,c],result, False)
                 else do
                         let result = evalCreateMatrix types rowValue (fromJust colValue) 
-                        return (tks++[a,rowIndex,c]++colIndex,result)
+                        return (tks++[a,rowIndex,c]++colIndex,result, False)
 
 
 getCol :: ParsecT [Token] MyState IO ([Token], Maybe Type)

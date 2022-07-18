@@ -1,7 +1,2 @@
-begin int main():
-    int aba = 3;
-    string b = "aba" + "2";
-    print("32" + 2);
-    int a = 21;
-    return 1;
+begin main():
 end main;

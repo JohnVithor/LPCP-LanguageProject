@@ -4,7 +4,7 @@ import Lexer
 import Type
 import Data.List
 
-type Subprogram = (String, Maybe Type, [(String, Type)], [Token])
+type Subprogram = (String, Maybe Type, [(String, Type, Bool)], [Token])
 type SymTable = (String,Type,Bool)
 type MyState = ([SymTable], [Type], [Subprogram], Int, String,Int)
 
@@ -93,7 +93,7 @@ symtableGetInner (scope,count,name) ((key2, value, const1):t) backup
     where key = scope++"."++show count++"."++name
 symtableGetInner (scope,count,name) [] backup =
     if count > 0 then symtableGetInner (scope,count-1,name) backup backup
-    else error ("Variável não declarada: '" ++ name++"'")
+    else error ("Variável não declarada neste escopo: '" ++ name++"'")
 
 symtableGetInner2 :: String  -> [SymTable] -> SymTable
 symtableGetInner2 key ((key2, value, const1):t) =
@@ -108,7 +108,7 @@ symtableGetInner3 (scope,count,name) ((key2, value, const1):t) backup
     where key = scope++"."++show count++"."++name
 symtableGetInner3 (scope,count,name) [] backup =
     if count > 0 then symtableGetInner3 (scope,count-1,name) backup backup
-    else error ("Variável não declarada: '" ++ name++"'")
+    else error ("Variável não declarada neste escopo: '" ++ name++"'")
 
 symtableInsert :: SymTable -> MyState -> MyState
 symtableInsert (name, value, const1) (symtable, t, subs,count, func, heapCount)
@@ -129,7 +129,7 @@ symtableUpdate :: Bool -> Type -> SymTable -> MyState -> MyState
 symtableUpdate x refVal tok (sym, ty, subs ,count, func, heapCount) = (symtableUpdateInner x refVal tok sym, ty, subs,count,func, heapCount)
 
 symtableUpdateInner :: Bool -> Type -> SymTable -> [SymTable] -> [SymTable]
-symtableUpdateInner _ _ (name, _, _) [] = error ("Variável não declarada: '" ++ name++"'")
+symtableUpdateInner _ _ (name, _, _) [] = error ("Variável não declarada neste escopo: '" ++ name++"'")
 symtableUpdateInner x refVal (name, value, const1) ((name2, value2, const2):t)
     | const1 = error ("Não se pode modificar uma constante: '"++name++"'")
     | x =   if getRefKey value == name2 then 
@@ -142,7 +142,7 @@ symtableUpdateInner x refVal (name, value, const1) ((name2, value2, const2):t)
                     else (name2, value2, const2) : symtableUpdateInner x refVal (name, value, const1) t
 
 symtableRemove :: SymTable -> [SymTable] -> [SymTable]
-symtableRemove (name, _, _) [] = error ("Variável não declarada: '" ++ name++"'")
+symtableRemove (name, _, _) [] = error ("Variável não declarada neste escopo: '" ++ name++"'")
 symtableRemove (name, value, const1) ((name2, value2, const22):t) =
     if name == name2 then t
     else (name2, value2, const22) : symtableRemove (name, value, const1) t
@@ -151,7 +151,7 @@ symtableRemoveRef :: String -> MyState -> MyState
 symtableRemoveRef key (symtable, t, subs,count, func, heapCount) =  (symtableRemoveRefInner key symtable, t, subs,count, func, heapCount)
 
 symtableRemoveRefInner :: String -> [SymTable] -> [SymTable]
-symtableRemoveRefInner key [] = error ("Variável não declarada: '" ++ key++"'")
+symtableRemoveRefInner key [] = error ("Variável não declarada neste escopo: '" ++ key++"'")
 symtableRemoveRefInner key ((name2, value2, const22):t) =
     if key == name2 then t
     else (name2, value2, const22) : symtableRemoveRefInner key t
