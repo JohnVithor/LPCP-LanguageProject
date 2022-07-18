@@ -18,7 +18,7 @@ getSubProg :: String -> MyState -> Subprogram
 getSubProg key (_, _, subs, _, _, _) =  getSubProgInner subs key
 
 getSubProgInner :: [Subprogram] -> String -> Subprogram
-getSubProgInner [] key = error ("subprograma: '"++key++"' não encontrado")
+getSubProgInner [] key = error ("O subprograma: '"++key++"' não foi encontrado")
 getSubProgInner ((name, t, args, stmts):subs) key =
                                if name == key then (name, t, args, stmts)
                                else getSubProgInner subs key
@@ -36,17 +36,17 @@ typeTableGet (Type _ name) (_, _, _,_,_,_)
     | name == "real" = Type.Real 0.0
     | name == "char" = Type.Char ' '
     | name == "string" = Type.String ""
-    | otherwise = error "tipo primitivo não reconhecido"
+    | otherwise = error "Tipo primitivo não reconhecido"
 typeTableGet (Id _ name) (_, tbl, _,_,_,_) = getUserDefinedType name tbl
-typeTableGet _ _ = error "Not a type token"
+typeTableGet t _ = error ("O token '"++show t++"' não representa um tipo definido pelo usuário")
 
 getLogExprResult :: Type -> Bool
 getLogExprResult (Type.Bool v) = v
-getLogExprResult _ = error "Not a Boolean value"
+getLogExprResult _ = error "O resultado da expressão não foi um valor booleano"
 
 
 getUserDefinedType :: String -> [Type] -> Type
-getUserDefinedType _ [] = error "Type not Found"
+getUserDefinedType name [] = error ("O identificador '"++name++"' não representa um tipo")
 getUserDefinedType name (t:tbl)
     | name == getStructName t = t
     | otherwise = getUserDefinedType name tbl
@@ -58,7 +58,7 @@ getDefaultValue (Type _ "char") = Type.Char ' '
 getDefaultValue (Type _ "string") = Type.String ""
 getDefaultValue (Type _ "bool") = Type.Bool True
 -- Todo incluir busca nos tipos de usuarios (structs) ?
-getDefaultValue _ = error "Is not a Type Token"
+getDefaultValue t = error ("O token '"++show t++"' não representa um tipo")
 
 enterScope :: MyState -> MyState
 enterScope (t, ty, programs,count,func, heapCount) = (t, ty, programs,count+1,func, heapCount)
@@ -93,13 +93,13 @@ symtableGetInner (scope,count,name) ((key2, value, const1):t) backup
     where key = scope++"."++show count++"."++name
 symtableGetInner (scope,count,name) [] backup =
     if count > 0 then symtableGetInner (scope,count-1,name) backup backup
-    else error ("Variável não encontrada: " ++ name)
+    else error ("Variável não declarada: '" ++ name++"'")
 
 symtableGetInner2 :: String  -> [SymTable] -> SymTable
 symtableGetInner2 key ((key2, value, const1):t) =
     if key == key2 then (key2, value, const1)
     else symtableGetInner2 key t
-symtableGetInner2 _ [] = error "Referencia não encontrada"
+symtableGetInner2 key [] = error ("O endereço '"++key++" não é válido")
 
 symtableGetInner3 :: (String,Int,String) -> [SymTable] -> [SymTable] -> SymTable
 symtableGetInner3 (scope,count,name) ((key2, value, const1):t) backup
@@ -108,7 +108,7 @@ symtableGetInner3 (scope,count,name) ((key2, value, const1):t) backup
     where key = scope++"."++show count++"."++name
 symtableGetInner3 (scope,count,name) [] backup =
     if count > 0 then symtableGetInner3 (scope,count-1,name) backup backup
-    else error ("Variável não encontrada: " ++ name)
+    else error ("Variável não declarada: '" ++ name++"'")
 
 symtableInsert :: SymTable -> MyState -> MyState
 symtableInsert (name, value, const1) (symtable, t, subs,count, func, heapCount)
@@ -129,9 +129,9 @@ symtableUpdate :: Bool -> Type -> SymTable -> MyState -> MyState
 symtableUpdate x refVal tok (sym, ty, subs ,count, func, heapCount) = (symtableUpdateInner x refVal tok sym, ty, subs,count,func, heapCount)
 
 symtableUpdateInner :: Bool -> Type -> SymTable -> [SymTable] -> [SymTable]
-symtableUpdateInner _ _ (name, _, _) [] = error ("Variável não encontrada: " ++ name)
+symtableUpdateInner _ _ (name, _, _) [] = error ("Variável não declarada: '" ++ name++"'")
 symtableUpdateInner x refVal (name, value, const1) ((name2, value2, const2):t)
-    | const1 = error "Não se pode modificar uma constante"
+    | const1 = error ("Não se pode modificar uma constante: '"++name++"'")
     | x =   if getRefKey value == name2 then 
                 if compatible refVal value2 then (name2, refVal, const2):t
                 else error ("(ref on) Não é possivel guardar um " ++ show refVal ++" em um " ++ show value2)
@@ -142,7 +142,7 @@ symtableUpdateInner x refVal (name, value, const1) ((name2, value2, const2):t)
                     else (name2, value2, const2) : symtableUpdateInner x refVal (name, value, const1) t
 
 symtableRemove :: SymTable -> [SymTable] -> [SymTable]
-symtableRemove (name, _, _) [] = error ("Variável não encontrada: " ++ name)
+symtableRemove (name, _, _) [] = error ("Variável não declarada: '" ++ name++"'")
 symtableRemove (name, value, const1) ((name2, value2, const22):t) =
     if name == name2 then t
     else (name2, value2, const22) : symtableRemove (name, value, const1) t
@@ -151,7 +151,7 @@ symtableRemoveRef :: String -> MyState -> MyState
 symtableRemoveRef key (symtable, t, subs,count, func, heapCount) =  (symtableRemoveRefInner key symtable, t, subs,count, func, heapCount)
 
 symtableRemoveRefInner :: String -> [SymTable] -> [SymTable]
-symtableRemoveRefInner key [] = error ("Variável não encontrada: " ++ key)
+symtableRemoveRefInner key [] = error ("Variável não declarada: '" ++ key++"'")
 symtableRemoveRefInner key ((name2, value2, const22):t) =
     if key == name2 then t
     else (name2, value2, const22) : symtableRemoveRefInner key t

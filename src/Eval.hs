@@ -17,14 +17,23 @@ cast (Lexer.CastingInt _) (Type.String value) = do
     let v = readMaybe value
     maybe (error ("Não é possível converter '" ++ value ++ "' para Int")) Type.Int v
 
+cast (Lexer.CastingBool _) (Type.String value) = do
+    let v = readMaybe value
+    maybe (error ("Não é possível converter '" ++ value ++ "' para Bool")) Type.Bool v
+
 cast (Lexer.CastingString _) (Type.Int value) = Type.String (show value)
-cast a b = error ("cast inválido: " ++ show a ++ show b)
+cast (Lexer.CastingString _) (Type.Real value) = Type.String (show value)
+cast (Lexer.CastingString _) (Type.Bool value) = Type.String (show value)
+cast a b = error ("O cast entre valores '" ++ show a ++"' e '"++ show b ++ "' é inválido")
 
 
 eval :: Type -> Token -> Type -> Type
 eval (Type.String x) (Plus _ ) (Type.String y) = Type.String (x ++ y)
-eval (Type.Char x) (Plus _ ) (Type.Char y ) = Type.String (x : [y])
 eval (Type.String x) (Plus _ ) (Type.Char y ) = Type.String (x ++ [y])
+eval (Type.String x) (Plus _ ) (Type.Int y) = Type.String (x ++ show y)
+eval (Type.String x) (Plus _ ) (Type.Real y) = Type.String (x ++ show y)
+eval (Type.String x) (Plus _ ) (Type.Bool y) = Type.String (x ++ show y)
+eval (Type.Char x) (Plus _ ) (Type.Char y ) = Type.String (x : [y])
 eval (Type.Char x) (Plus _ ) (Type.String y ) = Type.String (x : y)
 eval (Type.Int x) (Plus _ ) (Type.Int y) = Type.Int (x + y)
 eval (Type.Real x) (Plus _ ) (Type.Real y) = Type.Real (x + y)

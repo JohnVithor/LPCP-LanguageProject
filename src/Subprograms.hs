@@ -13,7 +13,7 @@ functionCreation = do
         let r = checkReturn s
         if r then return (tk++s)
         -- Melhorar isso aqui para buscar em todos os caminhos do código
-        else error "Retorno não encontrado"
+        else error ("Retorno não encontrado na função '"++getIdData (head s)++"'")
 
 checkReturn :: [Token] -> Bool
 checkReturn [] = False 

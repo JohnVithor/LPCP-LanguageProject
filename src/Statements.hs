@@ -144,7 +144,9 @@ varCreation x = do
             (c, v) <- initialization x t
             if x then do
                 if not (compatible t (fromJust v)) then
-                        error ("Não são compatíveis: " ++ show t ++ " - " ++ show (fromJust v))
+                        error ("A declaração da variável '"
+                         ++ getIdData b++"' não foi possivel ser realizada pois os tipos: '"
+                         ++ show t ++ "' e '" ++ show (fromJust v) ++ "' não são compatíveis")
                 else do
                         -- o False abaixo é para constantes, no momento sem constantes
                         let var = (getIdData b, fromJust v, False)
@@ -261,17 +263,19 @@ destroyCall x = do
 statements :: Bool -> ParsecT [Token] MyState IO ([Token],Maybe Type)
 statements x = (do
                 (a,v1) <- statement x
-                b <- semiColonToken
-                if x then do
-                        if isJust v1 then do
-                                (c,_) <- statements False
-                                return (a++[b]++c, v1)
+                b <- anyToken 
+                if not (isSemiColon b) then error ("Falta um ';' após o: " ++ show (last a))
+                else 
+                        if x then do
+                                if isJust v1 then do
+                                        (c,_) <- statements False
+                                        return (a++[b]++c, v1)
+                                else do
+                                        (c,ret) <- statements x
+                                        return (a++[b]++c, ret)
                         else do
-                                (c,ret) <- statements x
-                                return (a++[b]++c, ret)
-                else do
-                        (c,_) <- statements x
-                        return (a++[b]++c, Nothing)
+                                (c,_) <- statements x
+                                return (a++[b]++c, Nothing)
                 ) <|> return ([],Nothing)
 
 
