@@ -1,2 +1,12 @@
+begin global:
+    int a = 10;
+end global;
+
+begin int func(int x):
+    return x*a;
+end func;
+
 begin main():
+    int b = func(a); 
+    print(b);
 end main;

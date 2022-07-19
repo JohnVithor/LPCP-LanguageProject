@@ -104,13 +104,14 @@ replaceArg ((expectedName,oldValue):trueArgs) (name,dValue) value = if expectedN
 
 args :: Bool -> ParsecT [Token] MyState IO ([Token], [Maybe Type])
 args x = try (do
-        (a, v) <- try(structCreation x) <|> expression x <|> refInitialization x
+        (a, v) <- expression x <|> refInitialization x
         b <- commaToken
         (c, vs) <- args x
         return (a++b:c, v:vs))
         <|> do
-        (a,v) <- try(structCreation x) <|> expression x <|> refInitialization x
+        (a,v) <- expression x <|> refInitialization x
         return (a, [v])
+        <|> return ([],[])
 
 initialization :: Bool -> Type -> ParsecT [Token] MyState IO ([Token], Maybe Type)
 initialization x t = (do
