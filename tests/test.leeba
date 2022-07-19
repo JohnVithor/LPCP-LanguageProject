@@ -7,6 +7,6 @@ begin int func(string b):
 end func;
 
 begin main():
-    int b = func(4);
+    int b = func("4");
     print(b);
 end main;

@@ -1,176 +1,130 @@
 
 Gramática BNF - Leeba
 
-<program> := <var_globais> <struct_declarations> <subprograms>
+<program> := <global_vars> <declarations> 
 
-<var_globais> := λ | begin global : <var_declarations> end global;
+<global_vars> :=  $\lambda$ | begin global : <var_declarations> end global;
+
+<declarations> := <declaration> | <declaration> <declarations> 
+
+<declaration> := begin <struct_declaration> 
+                | begin <subprograms_declaration>       
+                | begin <function_declaration> 
 
 <var_declarations> := <var_declaration> ; | <var_declaration> ; <var_declarations>
 
+<struct_declaration> := struct struct_id : <field_declarations> end struct_id;
 
-Registros
+<field_declarations> := <data_type> id; | <data_type> id; <field_declarations> 
 
-<struct_declarations> := λ | <struct_declaration> <struct_declarations>
+<subprograms_declaration> := id ( <params> ): <statements> end id; 
 
-<struct_declaration> := begin struct struct_id : <field_declarations> end struct_id;
+<function_declaration> := <data_type> <subprograms_declaration>
 
-<field_declarations> := <data_type> field_id; | <data_type> field_id; <field_declarations> 
+<params> :=  $\lambda$ | <param> | <param> , <params> 
 
+<param> := <data_type> id
 
-Subprogramas
+<return> := return <expression> | <ref_ini>
 
-<subprograms> := <function> | <function> <subprograms> | <procedure> <subprograms>
+<ref_ini> := ref <maybe_var>
 
-<function> := begin <data_type> function_id ( <params> ): <statements> end function_id;
-
-<procedure> := begin procedure_id ( <params> ): <statements> end procedure_id;
-
-<params> :=  λ | <param_declarations>
-
-<param_declarations> := <var_declaration> 
-| <var_declaration> , <param_declarations> 
-| ref <var_declaration> 
-| ref <var_declaration> , <param_declarations>
-
-<return> := return <expression>
-
-Statements
+<maybe_var> := <function_call> | <array_acess> | id<dot_acess>
+  
+<dot_acess> := $\lambda$ | .id <dot_acess>
 
 <statements> := <statement> ; | <statement> ; <statements>
 
-<statement> := <var_declaration>
-                        | <assignment>
-                        | <conditional>
-                        | <loop>
-                        | <procedure_call>
-                        | <return>
-                        | destroy var_id
-                       | continue
-                      | break
+<statement> := <print>
+            | newline
+            | destroy id
+            | <conditional>
+            | <subprogram_call>
+            | <array_modification>
+            | <var_declaration>
+            | <assignment>
+            | <loop>
+            | <return>
 
-<procedure_call> := procedure_id(<args>)
+<array_modification> := id[<expression>]<subscript> = <expression>
+                        | id[<expression>]<subscript> = <ref_ini>
+                        | id[<expression>]<subscript> = read
+                        | id[<expression>]<subscript> = create <data_type>
 
+<array_acess> := id[<numeric_apression>]<subscript>
 
-Expressions
+<subscript> := [<expression>] |  $\lambda $
 
-<function_call> := function_id(<args>)
+<print>:= print(<expression>)
 
-<args> := λ | ref var_id | ref var_id , <args> | <expression> | <expression> , <args>
+<subprogram_call> := id(<args>)
+
+<args> := $\lambda $ | <ref_ini> | <ref_ini> , <args> | <expression> | <expression> , <args>
 
 <casting> :=  (int) | (real) | (bool) | (string) | (char)
 
-<expression> := <numeric_expression>
-        | <logic_expression>
-        | <string_expression>
+<expression> := <numeric_expression> | <logic_expression> 
+              | <string_expression> | <casting> <expression>
 
-<numeric_expression> := <numeric_expression> + <term> 
-| <numeric_expression> - <term>
-| <term>
+<numeric_expression> := <term> <eval_remaining>
 
-<term> := <term> * <factor>
-    | <term> / <factor>
-    | <term> % <factor>
-    | <factor>
+<eval_remaining> := + <term> <eval_remaining> | - <term> <eval_remaining>
 
-<factor> := <literal>
-                          |  var_id
-                        | var_id.field_name
-                        | var_id[<numeric_expression>]
-                          | (<numeric_expression>)
-                          |  <function_call>
-                        | <casting> <numeric_expression>
-        |  -<factor>
+<term> := <factor> * <term> | <factor> / <term> | <factor> % <term> | <factor>
 
-<logic_expression> := <logic_expression> OR <logic_term> 
-            | <logic_term1>
+<factor> := <literal> | <maybe_var> | - <factor> | (<numeric_expression>)
 
-<logic_term1> := <logic_term1> AND <logic_term2>
-        | <logic_term2>
-            
-<logic_term2> := NOT <logic_factor>
-        | <logic_factor>
+<logic_expression> := <logic_term>  or <logic_expression> | <logic_term1>
 
-<logic_factor> := bool_literal
-                          | var_id
-        | var_id.field_name
-                       | var_id[<numeric_expression>]
-        | <function_call>
-        | (<logic_expression>)
-        | <comparison>
-        | <expression> is <data_type>
-        | <expression> in var_id
+<logic_term1> := <logic_term2> and <logic_term1> | <logic_term2>
+			
+<logic_term2> := not <logic_factor> | <logic_factor>
+
+<logic_factor> :=  <comparison>
+                | bool_literal
+                | <maybe_var>
+                | (<logic_expression>)
+                | NULL <maybe_var>
 
 <comparison> := <expression> == <expression>
-        | <expression> != <expression>
-        | <numeric_expression> > <numeric_expression>
-        | <numeric_expression> < <numeric_expression>
-        | <numeric_expression> <= <numeric_expression>
-        | <numeric_expression> >= <numeric_expression>
+              | <expression> != <expression>
+              | <numeric_expression> > <numeric_expression>
+              | <numeric_expression> < <numeric_expression>
+              | <numeric_expression> <= <numeric_expression>
+              | <numeric_expression> >= <numeric_expression>
 
+<string_expression> := <string_factor> + <string_expression> | <string_factor>
 
-<string_expression> := string_literal 
-                                    | char_literal
-                                    | var_id
-                                    | <string_expression> + <string_expression>
-
-
-Condicionais
+<string_factor> :=  string_literal | char_literal | <maybe_var>
 
 <conditional> := begin if ( <logic_expression> ): <statements> end if
-                            | begin if ( <logic_expression> ): <statements> end if ; begin else: <statements> end else
-
-
-Laços de Repetição
+   	             | begin if ( <logic_expression> ): <statements> end if 
+                   begin else: <statements> end else
 
 <loop> := begin while (<logic_expression>): <statements> end while
-        | begin repeat: <statements> until (<logic_expression>) end repeat
-        | begin foreach <data_type> var_id in var_id: <statements> end foreach
 
+<var_declaration> := <data_type> id
+                    | <data_type> id = <expression>
+                    | <data_type> id = <ref_ini>
+                    | <data_type> id = read
+                    | <data_type> id = create <data_type>
 
-Declaração de Variável
+<assignment> := id<dot_acess> = <expression>
+            | id<dot_acess> = <ref_ini>
+            | id<dot_acess> = read
+            | id<dot_acess> = create <data_type>
 
-<var_declaration> := <data_type> var_id
-                                | <data_type> var_id = <expression>
-                                | constant <data_type> var_id = <expression>
-                                | struct_id var_id = struct_id(<args>)
-                                | struct_id var_id = create struct_id(<args>)
+<data_type> := <type> 
+            | id
+            | constant <type>
+            | constant id
+            | ref <type>
+            | ref id
+            | <type>[integer_literal]
+            | <type>[integer_literal][integer_literal]
 
-<assignment> := var_id = <expression> 
-                        | var_id = ref var_id 
-                        | var_id = struct_id(<args>)
-                        | var_id = create struct_id(<args>)
-                        | var_id[<numeric_expression>] = <expression>
-                        | var_id[<numeric_expression>] = ref var_id 
-                        | var_id[<numeric_expression>] = struct_id(<args>)
-                        | var_id[<numeric_expression>] = create struct_id(<args>)
-                        | var_id.field_name = <expression>
-                        | var_id.field_name = ref var_id
-                        | var_id.field_name = struct_id(<args>)
-                        | var_id.field_name = create struct_id(<args>)
+<type> := int | real | bool | char | string
 
-<data_type> := int
-         | real
-                        | bool
-                        | char
-                        | string
-                        | <list_type>
-                        | struct_id
-
-
-<list_type> := int[]    | int[][]
-        | real[]        | real[][]
-        | bool[]        | bool[][]
-        | char[]        | char[][]
-        | string[]      | string[][]
-        | struct_id[]   | struct_id[][]
-
-
-
-Literais
-
-<literal> := <numeric_literal> 
-                | char_literal
-                | string_literal
-                | bool_literal
+<literal> := <numeric_literal>  | char_literal | string_literal | bool_literal
 
 <numeric_literal> := real_literal | integer_literal

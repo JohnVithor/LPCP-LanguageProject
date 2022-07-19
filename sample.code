@@ -1,7 +1,0 @@
-begin teste():
-    int X, Y, Z;
-    X = 1;
-    Y = 1;
-    Z = X + Y;
-    print(Z);
-end teste;
