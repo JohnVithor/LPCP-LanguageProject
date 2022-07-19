@@ -2,11 +2,11 @@ begin global:
     int a = 10;
 end global;
 
-begin int func(int x):
-    return x*a;
+begin int func(string b):
+    return a;
 end func;
 
 begin main():
-    int b = func(a); 
+    int b = func(4);
     print(b);
 end main;

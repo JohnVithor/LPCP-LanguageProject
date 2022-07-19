@@ -41,25 +41,8 @@ declarations = (do
                 return (c++e))
                 <|> return []
 
---parser para declaração de constante int
---constant int a = 10;
--- constantDecl :: ParsecT [Token] MyState IO Type
--- constantDecl = do
---             const <- constantToken
---             -- TODO: usar essa informação sobre ser constante
---             a <- typeToken
---             b <- idToken
---             c <- assignToken
---             d <- intToken <|> stringToken <|> charToken <|> realToken <|> boolToken
---             e <- semiColonToken
---             s <- getState
---             if not (compatible (typeTableGet a s) d) then fail "tipos diferentes" else
---                 do
---                 updateState(symtableInsert (getIdData b, d))
---                 return (Type.Bool False) -- O ideal seria não retornar nada.
-
 literal :: ParsecT [Token] MyState IO (Token,Type)
-literal = intToken<|> realToken <|> charToken <|> stringToken <|> boolToken
+literal = intToken <|> realToken <|> charToken <|> stringToken <|> boolToken
 
 program :: ParsecT [Token] MyState IO [Token]
 program = do
@@ -77,4 +60,4 @@ program = do
 
 
 parser :: [Token] -> IO (Either ParseError [Token])
-parser = runParserT program ([], [], [],0,"",0) "Error message"
+parser = runParserT program ([], [], [],0,"global",0) "Error message"

@@ -4,13 +4,12 @@ begin struct node:
     ref node right;
 end node;
 
-begin struct tree:
-    ref node head;
-end tree;
-
 begin ref node create_node(int v):
   ref node n = create node;
+  newline;
   n.value = v;
+  n.left;
+  n.right;
   return ref n;
 end create_node;
 
@@ -20,63 +19,61 @@ begin ref node insert(ref node n, int v):
         return ref m;
     end if;
     begin if (v < n.value):
-        n.left = insert(n.left, v);
+        n.left = ref insert(ref n.left, v);
     end if
     begin else:
-        n.right = insert(n.right, v);
+        n.right = ref insert(ref n.right, v);
     end else;
   return ref n;
 end insert;
 
 begin int find_min(ref node n):
-    int min;
     begin if(not NULL n.left):
-        min = find_min(n.left);
-        return min;
+        find_min(ref n.left, min);
     end if;
     begin if(NULL n.left):
         return n.value;
     end if;
-    return min;
 end find_min;
 
 begin int find_max(ref node n):
-    int max;
     begin if(not NULL n.right):
-        max = find_max(n.right);
-        return max;
+        find_max(ref n.right, min);
     end if;
     begin if(NULL n.right):
         return n.value;
     end if;
-    return max;
 end find_max;
 
 begin print_tree(ref node n, int lvl):
     //print("lvl" + lvl ": " + n.value);
     begin if(not NULL n.right):
-        print_tree(n.right, lvl + 1);
+        print_tree(ref n.right, lvl + 1);
     end if;
     begin if(not NULL n.left):
-        print_tree(n.left, lvl + 1);
+        print_tree(ref n.left, lvl + 1);
     end if;
 end print_tree;
 
 begin int main():
-    ref tree a = create tree;
+    int[10] tree_arr;
     int i = 0;
-    a.head = insert(a.head, 5);
-    a.head = insert(a.head, 1);
-    a.head = insert(a.head, 15);
-    a.head = insert(a.head, 17);
-    a.head = insert(a.head, 2);
-    int min = find_min(a.head);
-    int max = find_max(a.head);   
-    print("O minimo é: ");
-    print(min);
+    begin while(i < 10):
+        tree_arr[i] = (i*17)%10;
+        i = i + 1;
+    end while;
+    i = 0;
+    ref node tree = create node;
+    begin while(i < 10):
+        tree = ref insert(ref tree, i+10);
+        i = i + 1;
+    end while;
+    print("Minimo: ");
+    print(find_min(ref tree));
     newline;
-    print("O máximo é: ");
-    print(max);
+    print("Maximo: ");
+    print(find_max(ref tree));
     newline;
+    //print_tree(ref tree, 0);
     return 1;
 end main;

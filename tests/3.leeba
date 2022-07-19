@@ -56,8 +56,8 @@ begin int main():
     end if
     begin else:
             real prod_sum;
-            begin while (i < M0_cols):
-                begin while (j < M1_lines):
+            begin while (i < M0_lines):
+                begin while (j < M1_cols):
                     prod_sum = 0;
                     begin while (k < M0_cols):
                         prod_sum = prod_sum + M0[i][k]*M1[k][j];
@@ -73,8 +73,8 @@ begin int main():
 			i = 0;
             print("Produto:");
 			newline;
-			begin while (i < M0_cols):
-				begin while (j < M1_lines):
+			begin while (i < M0_lines):
+				begin while (j < M1_cols):
                     print(M_prod[i][j]);
 					print(" ");
 					j = j + 1;

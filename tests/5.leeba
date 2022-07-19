@@ -20,6 +20,6 @@ end mdc;
 begin int main():
 	ref int r = create int;
 	mdc(55189389385, 1242142145, ref r);
-	print(r);
+	print(r);newline;
 	return 1;
 end main;

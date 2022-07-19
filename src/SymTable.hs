@@ -91,9 +91,11 @@ symtableGetInner (scope,count,name) ((key2, value, const1):t) backup
     | otherwise = if key == key2 then (key2, value, const1)
                              else symtableGetInner (scope,count,name) t backup
     where key = scope++"."++show count++"."++name
-symtableGetInner (scope,count,name) [] backup =
-    if count > 0 then symtableGetInner (scope,count-1,name) backup backup
-    else error ("Variável não declarada neste escopo: '" ++ name++"'")
+symtableGetInner (scope,count,name) [] backup
+    | scope == "global" = error ("Variável não declarada neste escopo: '" ++ name ++"'")
+    | count > 0 = symtableGetInner (scope,count-1,name) backup backup
+    | otherwise = symtableGetInner ("global",0,name) backup backup
+        
 
 symtableGetInner2 :: String  -> [SymTable] -> SymTable
 symtableGetInner2 key ((key2, value, const1):t) =
@@ -106,9 +108,10 @@ symtableGetInner3 (scope,count,name) ((key2, value, const1):t) backup
     = if key == key2 then (key2, value, const1)
                              else symtableGetInner3 (scope,count,name) t backup
     where key = scope++"."++show count++"."++name
-symtableGetInner3 (scope,count,name) [] backup =
-    if count > 0 then symtableGetInner3 (scope,count-1,name) backup backup
-    else error ("Variável não declarada neste escopo: '" ++ name++"'")
+symtableGetInner3 (scope,count,name) [] backup
+    | scope == "global" = error ("Variável não declarada neste escopo: '" ++ name ++"'")
+    | count > 0 = symtableGetInner3 (scope,count-1,name) backup backup
+    | otherwise = symtableGetInner3 ("global",0,name) backup backup
 
 symtableInsert :: SymTable -> MyState -> MyState
 symtableInsert (name, value, const1) (symtable, t, subs,count, func, heapCount)

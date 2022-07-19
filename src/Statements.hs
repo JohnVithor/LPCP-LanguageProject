@@ -370,8 +370,8 @@ newLineStatement x = do
         a <- newLineToken
         if x then do
                 liftIO (putStrLn "")
-                s <- getState 
-                liftIO (print (getSymbolTbl s))
+                -- s <- getState 
+                -- liftIO (print (getSymbolTbl s))
                 return ([a],Nothing)
         else return ([a],Nothing)
 
